@@ -1253,7 +1253,7 @@ function guessHTML(v){
 function showHTML(v){
   const R=v.result,final=v.vaults>=3||v.alarms>=3;
   const S2=v.seats,pn=s=>s.kind==="dummy"?s.parents.map(k=>k>=0&&v.players[k]?esc(v.players[k].name):"?").join(" + ")+", ":"";
-  const bad=R.success?"":`${esc(S2[R.order[R.breakAt]].name)}'s hand beats ${esc(S2[R.order[R.breakAt+1]].name)}'s, but has a lower chip.`;
+  const bad=R.success?"":`${esc(S2[R.order[R.breakAt]].name)}'s hand beats ${esc(S2[R.order[R.breakAt+1]].name)}'s, but has a higher chip.`;
   return `<div class="o">
     <div class="o-bar"><div><h2>Showdown</h2>${stagesHTML(3)}</div>${iconBtns(true)}</div>
     ${tallyHTML(v)}
