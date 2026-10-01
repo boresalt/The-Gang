@@ -362,7 +362,7 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
         </div>
         <div class="panel">
           <div class="panel-h"><h2>Exchange rates</h2></div>
-          <p class="muted" style="font-size:.85rem;margin-top:0">YouTrip wallets hold foreign currency. Totals are shown in SGD using these rates (1 unit = S$). Defaults are approximate; set them to what you actually paid.</p>
+          <p class="muted" style="font-size:.85rem;margin-top:0">YouTrip wallets hold foreign currency. Totals are shown in SGD using these rates (1 unit = S$). Rates are taken from your YouTrip SmartExchange rows when there are any; otherwise they're approximate defaults. Type a rate to fix it.</p>
           <div class="kv" id="fxEdit" style="grid-template-columns:minmax(0,1fr) auto"></div>
         </div>
         <div class="panel">
@@ -457,7 +457,7 @@ const DEFAULT_CATS = [
 
 // Built-in rules, checked in order (first match wins). Keywords match whole words, case-insensitive.
 const BUILTIN = [
-  ['Transfers',['YOUTRIP','TOP UP','TOP-UP','TOPUP','TOPPED UP','ADD MONEY','ADDED MONEY','WALLET RELOAD','EXCHANGE','CONVERSION','CONVERTED','THANK YOU','PAYMENT RECEIVED','OWN ACCOUNT','DBS CARD','CARD PAYMENT','BILL PAYMENT DBS']],
+  ['Transfers',['YOUTRIP','TOP UP','TOP-UP','TOPUP','TOPPED UP','ADD MONEY','ADDED MONEY','WALLET RELOAD','SMARTEXCHANGE','SMARTEXCHANGE™','FX RATE','EXCHANGE','CONVERSION','CONVERTED','THANK YOU','PAYMENT RECEIVED','OWN ACCOUNT','DBS CARD','CARD PAYMENT','BILL PAYMENT DBS']],
   ['Income',['SALARY','SALA','PAYROLL','INTEREST EARNED','INTEREST CREDIT','INTEREST','CASHBACK','CASH REBATE','DIVIDEND','GST VOUCHER','CPF REFUND']],
   ['Investments',['SYFE','ENDOWUS','STASHAWAY','MOOMOO','TIGER BROKERS','IBKR','INTERACTIVE BROKERS','DBS VICKERS','CDP','SRS','SSB']],
   ['Insurance',['NTUC INCOME','INCOME INSURANCE','PRUDENTIAL','GREAT EASTERN','AIA','AVIVA','SINGLIFE','FWD','MANULIFE','INSURANCE']],
@@ -591,7 +591,7 @@ function parseAmount(v){
   if(/\(.*\)/.test(s)) neg = true;
   if(/(DR|DB)\s*$/i.test(s)) neg = true;
   const cr = /CR\s*$/i.test(s);
-  s = s.replace(/[A-Za-z$\s(),]/g,'').replace(/[−–]/g,'-');
+  s = s.replace(/[−–]/g,'-').replace(/[^0-9.+\-]/g,'');
   if(!/^-?\+?\d*\.?\d+$/.test(s)) return null;
   let n = parseFloat(s); if(isNaN(n)) return null;
   if(neg) n = -Math.abs(n);
@@ -786,6 +786,13 @@ function commit(list, fname){
     added++;
   }
   const paired = matchTransfers();
+  // YouTrip SmartExchange rows state the real rate, e.g. "$48.40 SGD to ¥5,400 JPY": use the latest one
+  // unless you've typed a rate yourself.
+  S.fxManual = S.fxManual || {};
+  list.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
+    const m = t.desc.match(/\$?\s?([\d,]+(?:\.\d+)?)\s*SGD\s+to\s+\D{0,3}([\d,]+(?:\.\d+)?)\s*([A-Z]{3})/i);
+    if(m){ const c=m[3].toUpperCase(), r=parseAmount(m[1])/parseAmount(m[2]); if(c!=='SGD' && r>0 && isFinite(r) && !S.fxManual[c]) S.fx[c]=+r.toPrecision(5); }
+  });
   save();
   const months = list.map(t=>t.date.slice(0,7)).sort();
   if(months.length) ui.period = months[months.length-1];
@@ -802,29 +809,92 @@ async function loadPdfJs(){
   await loadScript(LIB+'pdf.worker.min.js',msg); // runs in-page, no separate worker needed
   pdfjsLib.GlobalWorkerOptions.workerSrc = LIB+'pdf.worker.min.js';
 }
-async function pdfLines(file){
+async function pdfRead(file){
   await loadPdfJs();
   const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
-  const lines=[];
+  const pages=[], lines=[];
   for(let p=1;p<=pdf.numPages;p++){
     const page = await pdf.getPage(p); const tc = await page.getTextContent();
-    const rows=[];
-    for(const it of tc.items){ if(!it.str||!it.str.trim()) continue;
-      const y=it.transform[5], x=it.transform[4];
-      let r = rows.find(r=>Math.abs(r.y-y)<2.5); if(!r){ r={y,items:[]}; rows.push(r); }
-      r.items.push({x,s:it.str,w:it.width||0});
-    }
-    rows.sort((a,b)=>b.y-a.y);
-    for(const r of rows){ r.items.sort((a,b)=>a.x-b.x); let s='',end=null;
-      for(const it of r.items){ if(end!=null) s += (it.x-end>12)?'   ':(it.x-end>1.5?' ':''); s+=it.s; end=it.x+it.w; }
-      lines.push(s.trim());
-    }
+    const items = tc.items.filter(it=>it.str && it.str.trim()).map(it=>({x:it.transform[4], y:it.transform[5], w:it.width||0, s:it.str}));
+    pages.push(items);
+    for(const r of groupRows(items,1.5)) lines.push(r.phrases.map(ph=>ph.s).join('   '));
   }
-  return lines;
+  return {pages, lines};
 }
+// Group text pieces into visual rows, and join pieces that sit next to each other into phrases.
+function groupRows(items, gap){
+  const rows=[];
+  for(const it of [...items].sort((a,b)=>b.y-a.y)){
+    let r = rows.find(r=>Math.abs(r.y-it.y)<2.5); if(!r){ r={y:it.y,items:[]}; rows.push(r); }
+    r.items.push(it);
+  }
+  for(const r of rows){
+    r.items.sort((a,b)=>a.x-b.x); r.phrases=[];
+    for(const it of r.items){
+      const last = r.phrases[r.phrases.length-1];
+      if(last && it.x - last.x1 < gap*3.2){ last.s += (it.x-last.x1>gap?' ':'')+it.s; last.x1 = Math.max(last.x1,it.x+it.w); }
+      else r.phrases.push({x0:it.x, x1:it.x+it.w, y:r.y, s:it.s});
+    }
+    r.phrases.forEach(ph=>ph.s=ph.s.replace(/\s+/g,' ').trim());
+  }
+  return rows.sort((a,b)=>b.y-a.y);
+}
+const PDF_AMT = /^[+\-−]?\(?\s?(?:S\$|US\$|SGD|USD|EUR|JPY|[$€¥£₩฿]|RM)?\s?[+\-−]?\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?\)?(?:\s?(?:CR|DR|SGD|USD|EUR|JPY|GBP))?$/i;
+const PDF_DATE = /^(\d{1,2}\s+[A-Za-z]{3,9}\.?(?:\s+\d{2,4})?|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?|\d{4}-\d{2}-\d{2}|\d{1,2}-[A-Za-z]{3}(?:-\d{2,4})?)$/;
+const SYMCUR = {'¥':'JPY','€':'EUR','£':'GBP','₩':'KRW','฿':'THB'};
+
+// Statements laid out as a table (YouTrip, DBS/POSB accounts): find the header row
+// with Money Out/In (or Withdrawal/Deposit) and Balance, then read each transaction
+// by column. Handles rows that span two lines (date, then time; long descriptions).
+function parsePdfTable(pages, yearHint, cur){
+  const out=[]; let cols=null;
+  for(const items of pages){
+    const rows = groupRows(items, 2);
+    let top = Infinity;
+    for(const r of rows){
+      const t = r.phrases.map(p=>p.s).join(' | ');
+      if(/balance/i.test(t) && /(money out|withdraw|debit|paid out)/i.test(t) && /(money in|deposit|credit|paid in)/i.test(t)){
+        const find = re=>r.phrases.find(p=>re.test(p.s));
+        const c = { date:find(/date/i), desc:find(/description|details|transaction|particulars/i), out:find(/money out|withdraw|debit|paid out/i), in:find(/money in|deposit|credit|paid in/i), bal:find(/balance/i) };
+        if(c.desc && c.out && c.in){ cols=c; top=r.y; break; }
+      }
+    }
+    if(!cols) continue;
+    const phrases = rows.filter(r=>r.y < top-1).flatMap(r=>r.phrases);
+    const amtCols = ['out','in','bal'].filter(k=>cols[k]);
+    const center = p=>(p.x0+p.x1)/2;
+    const kind = p=>{
+      if(PDF_AMT.test(p.s) && center(p) > cols.desc.x0 + 40){
+        let best=null, bd=1e9;
+        for(const k of amtCols){ const c=cols[k]; const d=Math.min(Math.abs(center(p)-center(c)), Math.abs(p.x1-c.x1)); if(d<bd){bd=d;best=k;} }
+        return best;
+      }
+      if(center(p) < cols.desc.x0 - 2) return 'date';
+      if(p.x0 < cols.out.x0 - 4) return 'desc';
+      return null;
+    };
+    const anchors = phrases.filter(p=>kind(p)==='date' && PDF_DATE.test(p.s)).sort((a,b)=>b.y-a.y);
+    anchors.forEach((a,i)=>{
+      const lo = Math.max(anchors[i+1] ? anchors[i+1].y+6 : -1e9, a.y-45), hi = a.y+6;
+      const band = phrases.filter(p=>p!==a && p.y<=hi && p.y>lo);
+      const row = {desc:[], out:null, in:null, bal:null};
+      band.sort((x,y)=>y.y-x.y || x.x0-y.x0).forEach(p=>{ const k=kind(p); if(k==='desc') row.desc.push(p.s); else if(k && k!=='date' && row[k]==null) row[k]=p.s; });
+      const desc = row.desc.join(' ').replace(/\s+/g,' ').trim();
+      if(/opening balance|closing balance|balance (brought|carried) forward|balance b\/f|total/i.test(desc)) return;
+      const o = row.out!=null ? parseAmount(row.out) : null, n = row.in!=null ? parseAmount(row.in) : null;
+      if(!o && !n) return;
+      const amt = n ? Math.abs(n) : -Math.abs(o);
+      const date = parseDate(a.s, yearHint); if(!date) return;
+      const sym = ((row.in||row.out).match(/[¥€£₩฿]/)||[])[0];
+      out.push({date, desc:desc||'(no description)', amount:Math.round(amt*100)/100, currency:SYMCUR[sym]||cur, sgd:null, keep:true});
+    });
+  }
+  return out;
+}
+
 async function importPdf(file){
   toast('Reading '+file.name+'…');
-  const lines = await pdfLines(file);
+  const {pages, lines} = await pdfRead(file);
   const all = lines.join('\n');
   if(!lines.length) throw new Error('No text found. Scanned PDFs are not supported; download the e-statement or a CSV instead.');
   // statement year/month
@@ -832,8 +902,18 @@ async function importPdf(file){
   const sd = all.match(/statement date[^\n]*?(\d{1,2}[\s\/\-][A-Za-z]{3,9}[\s\/\-,]*\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i) || all.match(/as at[^\n]*?(\d{1,2}\s[A-Za-z]{3,9}\s\d{4})/i);
   if(sd){ const d=parseDate(sd[1]); if(d){ sy=+d.slice(0,4); sm=+d.slice(5,7); } }
   if(!sy){ const ys={}; (all.match(/\b20\d{2}\b/g)||[]).forEach(y=>ys[y]=(ys[y]||0)+1); const best=Object.entries(ys).sort((a,b)=>b[1]-a[1])[0]; sy = best? +best[0] : new Date().getFullYear(); }
+  const curM = file.name.match(/[_\-\s]([A-Z]{3})[_\-\s]?statement/i);
+  const cur = curM ? curM[1].toUpperCase() : 'SGD';
+  const acct = guessAccount(file.name, all.slice(0,3000));
+  let out = parsePdfTable(pages, sy, cur);
+  if(!out.length) out = parsePdfLines(lines, sy, sm);
+  if(!out.length) return showPdfText(file.name, lines);
+  await reviewPdf(file.name, out, acct, cur);
+}
+// Fallback for statements without a Money In/Out table (e.g. card statements): one line per transaction.
+function parsePdfLines(lines, sy, sm){
   const DATE = /^(\d{1,2}[\s\-\/][A-Za-z]{3}(?:[\s\-\/]\d{2,4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b\s*/;
-  const MONEY = /(?:^|\s)(\(?-?S?\$?\d{1,3}(?:,\d{3})*\.\d{2}\)?(?:\s?(?:CR|DR))?)\s*$/i;
+  const MONEY = /(?:^|\s)(\(?[+\-−]?(?:S\$|SGD\s?|[$€¥£])?\d{1,3}(?:,\d{3})*(?:\.\d{2})\)?(?:\s?(?:CR|DR|SGD))?)\s*$/i;
   const SKIP = /(balance (brought|carried) forward|balance b\/f|balance c\/f|previous balance|new balance|sub-?total|total\b|opening balance|closing balance|minimum payment)/i;
   const out=[]; let prevBal=null, last=null, cont=0;
   for(const raw of lines){
@@ -857,9 +937,6 @@ async function importPdf(file){
     if(/CR\b/i.test(amts[0]) || vals[0]<0 && /\(/.test(amts[0])) sign = 1;
     if(vals.length>=2){
       const bal = vals[vals.length-1];
-      if(vals.length===3){ // withdrawal, deposit, balance? take the non-empty one
-        amt = Math.abs(vals[0]);
-      }
       if(prevBal!=null){
         if(Math.abs(prevBal + amt - bal) < 0.011) sign = 1; else if(Math.abs(prevBal - amt - bal) < 0.011) sign = -1;
       }
@@ -868,14 +945,25 @@ async function importPdf(file){
     last = {date,desc:rest||'(no description)',amount:sign*amt,currency:'SGD',sgd:null,keep:true};
     cont=0; out.push(last);
   }
-  if(!out.length) throw new Error('No transactions recognised in this PDF. Try the CSV download instead.');
-  const acct = guessAccount(file.name, all.slice(0,3000));
-  await reviewPdf(file.name, out, acct);
+  return out;
 }
-function reviewPdf(fname, rows, acct){
+// Nothing recognised: show the text the reader found, so the layout can be checked.
+function showPdfText(fname, lines){
+  return new Promise(resolve=>{
+    $('#mapFile').textContent = fname;
+    $('#mapFields').innerHTML = `<p style="margin:0;grid-column:1/-1">No transactions were recognised in this PDF. Below is the text the app could read from it. This stays on your phone; nothing has been sent anywhere.</p>`;
+    $('#mapPreview').innerHTML = `<pre style="margin:0;padding:8px;font:11px/1.4 var(--mono);white-space:pre-wrap">${esc(lines.slice(0,120).join('\n'))}</pre>`;
+    $('#mapErr').hidden = true; $('#mapOk').hidden = true; $('#mapCancel').textContent = 'Close';
+    const dlg=$('#mapDlg'); const done=()=>{ $('#mapOk').hidden=false; $('#mapCancel').textContent='Skip this file'; resolve(); };
+    $('#mapCancel').onclick=()=>{ dlg.close(); done(); }; dlg.oncancel=done;
+    $('#mapFields').onchange=null; $('#mapFields').oninput=null; $('#mapPreview').onclick=null;
+    dlg.showModal();
+  });
+}
+function reviewPdf(fname, rows, acct, cur){
   return new Promise(resolve=>{
     $('#mapFile').textContent = fname + ' · PDF · ' + rows.length + ' rows';
-    $('#mapFields').innerHTML = `<label>Account name<input class="field" id="mAcct" value="${esc(acct)}"></label><label>Currency<input class="field" id="mCurDef" value="SGD" maxlength="3"></label>`;
+    $('#mapFields').innerHTML = `<label>Account name<input class="field" id="mAcct" value="${esc(acct)}"></label><label>Currency<input class="field" id="mCurDef" value="${esc(cur||'SGD')}" maxlength="3"></label>`;
     const draw = ()=>{ $('#mapPreview').innerHTML = `<table><thead><tr><th>Keep</th><th>Date</th><th>Description</th><th class="amt">Amount</th><th>Flip</th></tr></thead><tbody>${
       rows.map((t,i)=>`<tr><td><input type="checkbox" data-k="${i}" ${t.keep?'checked':''} aria-label="Keep row"></td><td class="num">${t.date}</td><td>${esc(t.desc)}</td><td class="amt ${t.amount>0?'in':''}">${t.amount>0?'+':''}${t.amount.toFixed(2)}</td><td><button type="button" class="btn sm" data-f="${i}" aria-label="Flip sign">±</button></td></tr>`).join('')
     }</tbody></table><div class="muted" style="padding:6px 8px;font-size:.8rem">PDF reading is best-effort. Spending should be negative; use ± to fix any row, untick rows that aren't transactions.</div>`; };
@@ -885,7 +973,7 @@ function reviewPdf(fname, rows, acct){
     $('#mapErr').hidden=true;
     const dlg=$('#mapDlg');
     $('#mapOk').onclick=()=>{ const a=$('#mAcct').value.trim()||acct, c=($('#mCurDef').value||'SGD').toUpperCase();
-      const list=rows.filter(r=>r.keep).map(({keep,...t})=>({...t,account:a,currency:c,amount:Math.round(t.amount*100)/100}));
+      const list=rows.filter(r=>r.keep).map(({keep,...t})=>({...t,account:a,currency:(t.currency&&t.currency!==(cur||'SGD'))?t.currency:c,amount:Math.round(t.amount*100)/100}));
       dlg.close(); if(list.length) commit(list,fname); resolve(); };
     $('#mapCancel').onclick=()=>{ dlg.close(); resolve(); };
     $('#mapFields').onchange=null; $('#mapFields').oninput=null;
@@ -945,7 +1033,7 @@ function renderOverview(){
 
   if(!S.txns.length){
     $('#kpis').innerHTML=''; $('#monthChart').innerHTML='<div class="empty">No transactions yet. Use <b>Import statement</b> or drop a CSV/PDF anywhere on the page.</div>';
-    $('#catBars').innerHTML=''; $('#merchants').innerHTML=''; $('#budgetList').innerHTML=''; return;
+    $('#catBars').innerHTML=''; $('#merchants').innerHTML=''; $('#budgetList').innerHTML=''; $('#coverage').innerHTML=''; return;
   }
   const list = S.txns.filter(t=>inScope(t,P,ui.acct));
   const T = totals(list);
@@ -1168,7 +1256,7 @@ $('#catEdit').onchange=e=>{ const i=e.target.dataset.kind; if(i==null) return; S
 $('#catEdit').onclick=e=>{ const i=e.target.dataset.delcat; if(i==null) return; const name=S.cats[+i].name;
   S.cats.splice(+i,1); S.txns.forEach(t=>{ if(t.category===name){ t.category='Other'; } }); S.rules=S.rules.filter(r=>r.cat!==name); delete S.budgets[name]; ruleCache=null; save(); renderSettings(); toast(`${name} removed; its transactions moved to Other.`); };
 $('#catForm').onsubmit=e=>{ e.preventDefault(); const n=$('#newCat').value.trim(); if(!n||S.cats.some(c=>c.name.toLowerCase()===n.toLowerCase())) return; S.cats.splice(S.cats.findIndex(c=>c.name==='Other'),0,{name:n,kind:'spend'}); $('#newCat').value=''; save(); renderSettings(); };
-$('#fxEdit').onchange=e=>{ const c=e.target.dataset.fx; if(!c) return; const v=parseFloat(e.target.value); if(v>0){ S.fx[c]=v; save(); toast(`1 ${c} = S$${v}`); } };
+$('#fxEdit').onchange=e=>{ const c=e.target.dataset.fx; if(!c) return; const v=parseFloat(e.target.value); if(v>0){ S.fx[c]=v; (S.fxManual=S.fxManual||{})[c]=true; save(); toast(`1 ${c} = S$${v}`); } };
 
 let exportName='';
 function showExport(text,name){ exportName=name; $('#exportText').value=text; $('#exportBox').hidden=false; }
