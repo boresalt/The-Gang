@@ -447,7 +447,7 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
 "use strict";
 /* ================= constants ================= */
 const KEY = 'pocket-ledger-v1';
-const APP_VERSION = '2026-10-02';
+const APP_VERSION = '2026-10-02b';
 const LIB = 'vendor/'; // Excel and PDF readers, shipped with the app
 const DEFAULT_CATS = [
   ['Food & Drink','spend'],['Groceries','spend'],['Transport','spend'],['Shopping','spend'],
@@ -463,7 +463,7 @@ const BUILTIN = [
   ['Investments',['SYFE','ENDOWUS','STASHAWAY','MOOMOO','TIGER BROKERS','IBKR','INTERACTIVE BROKERS','DBS VICKERS','CDP','SRS','SSB']],
   ['Insurance',['NTUC INCOME','INCOME INSURANCE','PRUDENTIAL','GREAT EASTERN','AIA','AVIVA','SINGLIFE','FWD','MANULIFE','INSURANCE']],
   ['Subscriptions',['NETFLIX','SPOTIFY','APPLE.COM/BILL','APPLE.COM','ICLOUD','YOUTUBE','GOOGLE','DISNEY','AMAZON PRIME','PRIME VIDEO','OPENAI','CHATGPT','ANTHROPIC','CLAUDE.AI','MICROSOFT','ADOBE','PATREON','VIU','IQIYI']],
-  ['Food & Drink',['GRABFOOD','GRAB FOOD','FOODPANDA','DELIVEROO','MCDONALD','MCDONALDS','KFC','STARBUCKS','TOAST BOX','YA KUN','KOPITIAM','KOUFU','FOOD REPUBLIC','FOOD JUNCTION','FOODCOURT','FOOD COURT','VENDING','VENDINGS','HAWKER','RESTAURANT','CAFE','COFFEE','BAKERY','BREADTALK','SUBWAY','JOLLIBEE','DIN TAI FUNG','SUSHI','LIHO','KOI','GONG CHA','CHICHA','MR BEAN','PIZZA','BURGER','MOS BURGER','SHAKE SHACK','ASTONS','SALADSTOP','PRET','CANTEEN','FOOD','BAR','BISTRO','RAMEN','HAIDILAO','TEA']],
+  ['Food & Drink',['GRABFOOD','GRAB FOOD','FOODPANDA','DELIVEROO','MCDONALD','MCDONALDS','KFC','STARBUCKS','TOAST BOX','YA KUN','KOPITIAM','KOUFU','DOUGH CULTURE','FOOD CONCEPTS','FOOD REPUBLIC','FOOD JUNCTION','FOODCOURT','FOOD COURT','VENDING','VENDINGS','HAWKER','RESTAURANT','CAFE','COFFEE','BAKERY','BREADTALK','SUBWAY','JOLLIBEE','DIN TAI FUNG','SUSHI','LIHO','KOI','GONG CHA','CHICHA','MR BEAN','PIZZA','BURGER','MOS BURGER','SHAKE SHACK','ASTONS','SALADSTOP','PRET','CANTEEN','FOOD','BAR','BISTRO','RAMEN','HAIDILAO','TEA']],
   ['Groceries',['FAIRPRICE','NTUC','FP XTRA','SHENG SIONG','COLD STORAGE','CS FRESH','GIANT','DON DON DONKI','DONKI','REDMART','PRIME SUPERMARKET','MUSTAFA','7-ELEVEN','7 ELEVEN','CHEERS','LAWSON','FAMILYMART','FAMILY MART','SUPERMARKET','MARKET']],
   ['Transport',['GRAB','GOJEK','TADA','RYDE','ZIG','COMFORTDELGRO','CDG','BUS/MRT','MRT/BUS','TOTAL FARE','SIMPLYGO','TRANSITLINK','EZ-LINK','EZLINK','SMRT','SBS TRANSIT','SHELL','ESSO','CALTEX','SPC','SINOPEC','PARKING','CARPARK','ERP','UBER','TAXI','LTA','JR EAST','JR WEST','SUICA','PASMO']],
   ['Bills & Utilities',['SP SERVICES','SP DIGITAL','SP GROUP','SINGTEL','STARHUB','M1','CIRCLES','GOMO','SIMBA','GIGA','TOWN COUNCIL','IRAS','HDB','PUB','CITY ENERGY','GENECO','KEPPEL ELECTRIC','SENOKO','TUAS POWER','MYREPUBLIC','VIEWQWEST']],
@@ -571,6 +571,18 @@ function merchant(desc){
 }
 
 /* ================= parsing ================= */
+// Remove card numbers and long reference codes from bank descriptions.
+function cleanDesc(v){
+  return String(v??'').replace(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/g,'').replace(/\b\d{10,}\b/g,'').replace(/\s+/g,' ').trim();
+}
+// Card purchases post a day or two late; the description carries the real date, e.g. "SGP 28SEP".
+function purchaseDate(desc, posted){
+  const dm = String(desc).match(/\b(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/i);
+  if(!dm) return posted;
+  let y = +posted.slice(0,4); const mo = MON.indexOf(dm[2].toLowerCase())+1; if(mo > +posted.slice(5,7)) y--;
+  const d = y+'-'+pad(mo)+'-'+dm[1]; const gap = dayDiff(d, posted);
+  return gap>=0 && gap<=14 ? d : posted;
+}
 function parseCSV(text){
   const rows=[]; let row=[], f='', q=false;
   for(let i=0;i<text.length;i++){
@@ -737,7 +749,7 @@ function mapAndImport(fname, rows){
     const build = (c)=>{
       const out=[]; let bad=0;
       for(const r of body){
-        const date = parseDate(r[c.date]); if(!date){ bad++; continue; }
+        let date = parseDate(r[c.date]); if(!date){ bad++; continue; }
         let amt = null;
         if(c.debit>=0 || c.credit>=0){
           const d = c.debit>=0 ? parseAmount(r[c.debit]) : null, cr = c.credit>=0 ? parseAmount(r[c.credit]) : null;
@@ -745,9 +757,13 @@ function mapAndImport(fname, rows){
           else amt = (cr?Math.abs(cr):0) - (d?Math.abs(d):0);
         } else if(c.amount>=0){ amt = parseAmount(r[c.amount]); if(amt!=null && c.sign==='card') amt=-amt; }
         if(amt==null||amt===0){ bad++; continue; }
-        let parts = c.desc.map(i=>String(r[i]??'').trim()).filter(Boolean);
+        let parts = c.desc.map(i=>cleanDesc(r[i])).filter(Boolean);
         if(parts.length>1) parts = parts.filter(x=>!/^[A-Z]{2,4}$/.test(x)); // drop bank codes like POS, ICT, UMC
-        const desc = parts.join(' · ') || '(no description)';
+        // DBS repeats the description in its reference columns: keep only parts that add something
+        const squash = x=>x.toUpperCase().replace(/[^A-Z0-9]/g,'');
+        const kept = []; parts.forEach(x=>{ if(!kept.some(k=>squash(k).includes(squash(x)))) kept.push(x); });
+        const desc = kept.join(' · ') || '(no description)';
+        date = purchaseDate(desc, date);
         let cur = c.cur>=0 ? String(r[c.cur]||'').trim().toUpperCase().slice(0,3) : '';
         if(!/^[A-Z]{3}$/.test(cur)) cur = c.curDef;
         let s = null;
@@ -945,12 +961,8 @@ function parsePdfDated(pages, cur){
       if(!day || !e.amt) continue;
       const lines = e.desc.sort((a,b)=>b.y-a.y || a.x0-b.x0).map(p=>p.s)
         .filter(l=>!/^debit card transaction\b/i.test(l));                     // the type line adds nothing for card purchases
-      let desc = lines.join(' · ').replace(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/g,'')   // card number
-        .replace(/\b\d{10,}\b/g,'').replace(/\s+/g,' ').replace(/\s+·/g,' ·').trim();
-      // Card purchases carry the real purchase date, e.g. "... SGP 28SEP ..."; prefer it.
-      let date = day; const dm = desc.match(/\b(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/i);
-      if(dm){ let y=+day.slice(0,4); const mo=MON.indexOf(dm[2].toLowerCase())+1; if(mo>+day.slice(5,7)) y--;
-        const d2 = y+'-'+pad(mo)+'-'+dm[1]; const gap = dayDiff(d2,day); if(gap>=0 && gap<=14) date=d2; }
+      const desc = lines.map(cleanDesc).filter(Boolean).join(' · ');
+      const date = purchaseDate(desc, day);
       out.push({date, desc:desc||'(no description)', amount:Math.round(e.amt*100)/100, currency:cur, sgd:null, keep:true});
     }
   }
