@@ -681,6 +681,8 @@ function guessAccount(name, text, extra=''){
   if(/YOUTRIP/.test(name.toUpperCase()) || /YOUTRIP/.test(text.slice(0,200).toUpperCase()) || /COMPLETED DATE/.test(t) && /MONEY IN/.test(t)) return 'YouTrip';
   const card = /CREDIT CARD|CARD STATEMENT|CARD NO|CARD NUMBER|CARDMEMBER|\bAMEX\b/.test(text.toUpperCase());
   if(/POSB/.test(t) && !/DBS/.test(t)) return card ? 'POSB Card' : 'POSB';
+  // digibank's account export: "Transaction Ref1/2/3" columns, file named transaction_history_*
+  if(/TRANSACTION REF1/.test(t) || /^TRANSACTION_HISTORY/.test(name.toUpperCase())) return card ? 'DBS Card' : 'DBS';
   if(/DBS|DIGIBANK/.test(t)) return card ? 'DBS Card' : 'DBS';
   if(/YOUTRIP/.test(extra.toUpperCase()) && !/TOP.?UP/.test(extra.toUpperCase())) return 'YouTrip';
   return name.replace(/\.[^.]+$/,'').slice(0,24) || 'Account';
