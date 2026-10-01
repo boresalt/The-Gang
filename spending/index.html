@@ -447,6 +447,7 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
 "use strict";
 /* ================= constants ================= */
 const KEY = 'pocket-ledger-v1';
+const APP_VERSION = '2026-10-02';
 const LIB = 'vendor/'; // Excel and PDF readers, shipped with the app
 const DEFAULT_CATS = [
   ['Food & Drink','spend'],['Groceries','spend'],['Transport','spend'],['Shopping','spend'],
@@ -462,9 +463,9 @@ const BUILTIN = [
   ['Investments',['SYFE','ENDOWUS','STASHAWAY','MOOMOO','TIGER BROKERS','IBKR','INTERACTIVE BROKERS','DBS VICKERS','CDP','SRS','SSB']],
   ['Insurance',['NTUC INCOME','INCOME INSURANCE','PRUDENTIAL','GREAT EASTERN','AIA','AVIVA','SINGLIFE','FWD','MANULIFE','INSURANCE']],
   ['Subscriptions',['NETFLIX','SPOTIFY','APPLE.COM/BILL','APPLE.COM','ICLOUD','YOUTUBE','GOOGLE','DISNEY','AMAZON PRIME','PRIME VIDEO','OPENAI','CHATGPT','ANTHROPIC','CLAUDE.AI','MICROSOFT','ADOBE','PATREON','VIU','IQIYI']],
-  ['Food & Drink',['GRABFOOD','GRAB FOOD','FOODPANDA','DELIVEROO','MCDONALD','MCDONALDS','KFC','STARBUCKS','TOAST BOX','YA KUN','KOPITIAM','KOUFU','FOOD REPUBLIC','FOOD JUNCTION','HAWKER','RESTAURANT','CAFE','COFFEE','BAKERY','BREADTALK','SUBWAY','JOLLIBEE','DIN TAI FUNG','SUSHI','LIHO','KOI','GONG CHA','CHICHA','MR BEAN','PIZZA','BURGER','MOS BURGER','SHAKE SHACK','ASTONS','SALADSTOP','PRET','CANTEEN','FOOD','BAR','BISTRO','RAMEN','HAIDILAO','TEA']],
-  ['Groceries',['FAIRPRICE','NTUC','FP XTRA','SHENG SIONG','COLD STORAGE','GIANT','DON DON DONKI','DONKI','REDMART','PRIME SUPERMARKET','MUSTAFA','7-ELEVEN','7 ELEVEN','CHEERS','LAWSON','FAMILYMART','FAMILY MART','SUPERMARKET','MARKET']],
-  ['Transport',['GRAB','GOJEK','TADA','RYDE','ZIG','COMFORTDELGRO','CDG','BUS/MRT','SIMPLYGO','TRANSITLINK','EZ-LINK','EZLINK','SMRT','SBS TRANSIT','SHELL','ESSO','CALTEX','SPC','SINOPEC','PARKING','CARPARK','ERP','UBER','TAXI','LTA','JR EAST','JR WEST','SUICA','PASMO']],
+  ['Food & Drink',['GRABFOOD','GRAB FOOD','FOODPANDA','DELIVEROO','MCDONALD','MCDONALDS','KFC','STARBUCKS','TOAST BOX','YA KUN','KOPITIAM','KOUFU','FOOD REPUBLIC','FOOD JUNCTION','FOODCOURT','FOOD COURT','VENDING','VENDINGS','HAWKER','RESTAURANT','CAFE','COFFEE','BAKERY','BREADTALK','SUBWAY','JOLLIBEE','DIN TAI FUNG','SUSHI','LIHO','KOI','GONG CHA','CHICHA','MR BEAN','PIZZA','BURGER','MOS BURGER','SHAKE SHACK','ASTONS','SALADSTOP','PRET','CANTEEN','FOOD','BAR','BISTRO','RAMEN','HAIDILAO','TEA']],
+  ['Groceries',['FAIRPRICE','NTUC','FP XTRA','SHENG SIONG','COLD STORAGE','CS FRESH','GIANT','DON DON DONKI','DONKI','REDMART','PRIME SUPERMARKET','MUSTAFA','7-ELEVEN','7 ELEVEN','CHEERS','LAWSON','FAMILYMART','FAMILY MART','SUPERMARKET','MARKET']],
+  ['Transport',['GRAB','GOJEK','TADA','RYDE','ZIG','COMFORTDELGRO','CDG','BUS/MRT','MRT/BUS','TOTAL FARE','SIMPLYGO','TRANSITLINK','EZ-LINK','EZLINK','SMRT','SBS TRANSIT','SHELL','ESSO','CALTEX','SPC','SINOPEC','PARKING','CARPARK','ERP','UBER','TAXI','LTA','JR EAST','JR WEST','SUICA','PASMO']],
   ['Bills & Utilities',['SP SERVICES','SP DIGITAL','SP GROUP','SINGTEL','STARHUB','M1','CIRCLES','GOMO','SIMBA','GIGA','TOWN COUNCIL','IRAS','HDB','PUB','CITY ENERGY','GENECO','KEPPEL ELECTRIC','SENOKO','TUAS POWER','MYREPUBLIC','VIEWQWEST']],
   ['Health & Fitness',['GUARDIAN','WATSONS','UNITY','CLINIC','MEDICAL','DENTAL','PHARMACY','HOSPITAL','POLYCLINIC','RAFFLES MEDICAL','FITNESS','GYM','ACTIVESG','ANYTIME FITNESS','CLASSPASS','YOGA']],
   ['Entertainment',['GOLDEN VILLAGE','GV','SHAW','CATHAY','STEAM','PLAYSTATION','NINTENDO','SISTIC','TICKETMASTER','KLOOK','TIMEZONE','KARAOKE','TEO HENG']],
@@ -664,9 +665,10 @@ function guessMap(header, sampleRows){
 }
 function guessAccount(name, text, extra=''){
   const t = (name+' '+text).toUpperCase();
-  if(/YOUTRIP/.test(t) || /COMPLETED DATE/.test(t) && /MONEY IN/.test(t)) return 'YouTrip';
-  const card = /CREDIT CARD|CARD NO|CARD NUMBER|\bCARD\b|VISA|MASTERCARD|AMEX/.test(text.toUpperCase());
-  if(/POSB/.test(t)) return card ? 'POSB Card' : 'POSB';
+  // Judge by the file name and statement heading, not by transactions that merely mention YouTrip.
+  if(/YOUTRIP/.test(name.toUpperCase()) || /YOUTRIP/.test(text.slice(0,200).toUpperCase()) || /COMPLETED DATE/.test(t) && /MONEY IN/.test(t)) return 'YouTrip';
+  const card = /CREDIT CARD|CARD STATEMENT|CARD NO|CARD NUMBER|CARDMEMBER|\bAMEX\b/.test(text.toUpperCase());
+  if(/POSB/.test(t) && !/DBS/.test(t)) return card ? 'POSB Card' : 'POSB';
   if(/DBS|DIGIBANK/.test(t)) return card ? 'DBS Card' : 'DBS';
   if(/YOUTRIP/.test(extra.toUpperCase()) && !/TOP.?UP/.test(extra.toUpperCase())) return 'YouTrip';
   return name.replace(/\.[^.]+$/,'').slice(0,24) || 'Account';
@@ -816,6 +818,7 @@ async function pdfRead(file){
   for(let p=1;p<=pdf.numPages;p++){
     const page = await pdf.getPage(p); const tc = await page.getTextContent();
     const items = tc.items.filter(it=>it.str && it.str.trim()).map(it=>({x:it.transform[4], y:it.transform[5], w:it.width||0, s:it.str}));
+    items.pageW = page.view[2] || 595;
     pages.push(items);
     for(const r of groupRows(items,1.5)) lines.push(r.phrases.map(ph=>ph.s).join('   '));
   }
@@ -880,7 +883,7 @@ function parsePdfTable(pages, yearHint, cur){
       const row = {desc:[], out:null, in:null, bal:null};
       band.sort((x,y)=>y.y-x.y || x.x0-y.x0).forEach(p=>{ const k=kind(p); if(k==='desc') row.desc.push(p.s); else if(k && k!=='date' && row[k]==null) row[k]=p.s; });
       const desc = row.desc.join(' ').replace(/\s+/g,' ').trim();
-      if(/opening balance|closing balance|balance (brought|carried) forward|balance b\/f|total/i.test(desc)) return;
+      if(/^(opening balance|closing balance|balance (brought|carried) forward|balance b\/f|(sub-?)?total\b)/i.test(desc)) return;
       const o = row.out!=null ? parseAmount(row.out) : null, n = row.in!=null ? parseAmount(row.in) : null;
       if(!o && !n) return;
       const amt = n ? Math.abs(n) : -Math.abs(o);
@@ -905,16 +908,59 @@ async function importPdf(file){
   const curM = file.name.match(/[_\-\s]([A-Z]{3})[_\-\s]?statement/i);
   const cur = curM ? curM[1].toUpperCase() : 'SGD';
   const acct = guessAccount(file.name, all.slice(0,3000));
-  let out = parsePdfTable(pages, sy, cur);
-  if(!out.length) out = parsePdfLines(lines, sy, sm);
+  // Try each reader and keep whichever finds the most transactions.
+  const tries = [parsePdfTable(pages, sy, cur), parsePdfDated(pages, cur), parsePdfLines(lines, sy, sm)];
+  const out = tries.sort((a,b)=>b.length-a.length)[0];
   if(!out.length) return showPdfText(file.name, lines);
   await reviewPdf(file.name, out, acct, cur);
+}
+// DBS/POSB "Transaction History" PDFs (digibank app): transactions grouped under
+// date headings like "Tuesday, 29 Sep 2026", each with "SGD - 2.90" on the right.
+function parsePdfDated(pages, cur){
+  const out=[]; let day=null;
+  const HEAD = /^(?:(?:yesterday|today|mon|tue|wed|thu|fri|sat|sun)[a-z]*,?\s*)?(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})$/i;
+  const AMT = /^(?:(SGD|USD|EUR|S\$)\s*)?([+\-−])?\s*(\d{1,3}(?:,\d{3})*\.\d{2})$/i;
+  for(const items of pages){
+    const W = items.pageW || 595, rows = groupRows(items, 2);
+    const ev = [];   // date headings and amounts, top to bottom
+    const left = [];
+    for(const r of rows){
+      const right = r.phrases.filter(p=>p.x0 > W*0.55), lefts = r.phrases.filter(p=>p.x0 <= W*0.55);
+      const rt = right.map(p=>p.s).join(' ').replace(/\s+/g,' ').trim();
+      const lt = lefts.map(p=>p.s).join(' ').trim();
+      if(HEAD.test(lt) && !rt){ ev.push({y:r.y, head:parseDate(lt.match(HEAD)[1])}); continue; }
+      const m = rt.match(AMT);
+      if(m) ev.push({y:r.y, amt:(m[2]&&/[\-−]/.test(m[2])?-1:1)*parseAmount(m[3]), x0:Math.min(...right.map(p=>p.x0)), desc:[]});
+      lefts.forEach(p=>left.push(p));
+    }
+    // attach each left-hand line to the nearest amount within a row's height
+    const amts = ev.filter(e=>e.amt!=null);
+    for(const p of left){
+      if(HEAD.test(p.s)) continue;
+      let best=null, bd=15; for(const a of amts){ const d=Math.abs(a.y-p.y); if(d<bd){bd=d;best=a;} }
+      if(best) best.desc.push(p);
+    }
+    for(const e of ev){
+      if(e.head){ day=e.head; continue; }
+      if(!day || !e.amt) continue;
+      const lines = e.desc.sort((a,b)=>b.y-a.y || a.x0-b.x0).map(p=>p.s)
+        .filter(l=>!/^debit card transaction\b/i.test(l));                     // the type line adds nothing for card purchases
+      let desc = lines.join(' · ').replace(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/g,'')   // card number
+        .replace(/\b\d{10,}\b/g,'').replace(/\s+/g,' ').replace(/\s+·/g,' ·').trim();
+      // Card purchases carry the real purchase date, e.g. "... SGP 28SEP ..."; prefer it.
+      let date = day; const dm = desc.match(/\b(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/i);
+      if(dm){ let y=+day.slice(0,4); const mo=MON.indexOf(dm[2].toLowerCase())+1; if(mo>+day.slice(5,7)) y--;
+        const d2 = y+'-'+pad(mo)+'-'+dm[1]; const gap = dayDiff(d2,day); if(gap>=0 && gap<=14) date=d2; }
+      out.push({date, desc:desc||'(no description)', amount:Math.round(e.amt*100)/100, currency:cur, sgd:null, keep:true});
+    }
+  }
+  return out;
 }
 // Fallback for statements without a Money In/Out table (e.g. card statements): one line per transaction.
 function parsePdfLines(lines, sy, sm){
   const DATE = /^(\d{1,2}[\s\-\/][A-Za-z]{3}(?:[\s\-\/]\d{2,4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b\s*/;
   const MONEY = /(?:^|\s)(\(?[+\-−]?(?:S\$|SGD\s?|[$€¥£])?\d{1,3}(?:,\d{3})*(?:\.\d{2})\)?(?:\s?(?:CR|DR|SGD))?)\s*$/i;
-  const SKIP = /(balance (brought|carried) forward|balance b\/f|balance c\/f|previous balance|new balance|sub-?total|total\b|opening balance|closing balance|minimum payment)/i;
+  const SKIP = /(balance (brought|carried) forward|balance b\/f|balance c\/f|previous balance|new balance|^\s*(sub-?)?total\b|\btotal (amount|due|balance|outstanding)|opening balance|closing balance|minimum payment)/i;
   const out=[]; let prevBal=null, last=null, cont=0;
   for(const raw of lines){
     let line = raw.replace(/\s+/g,' ').trim();
@@ -1184,7 +1230,7 @@ function renderSettings(){
   const curs = [...new Set(S.txns.map(t=>t.currency||'SGD').concat(S.assets.filter(a=>a.type==='stock').map(a=>(a.currency||'SGD').toUpperCase())))].filter(c=>c!=='SGD').sort();
   $('#fxEdit').innerHTML = curs.length ? curs.map(c=>`<label for="fx-${c}">1 ${c} =</label><input class="field num" id="fx-${c}" data-fx="${c}" type="number" step="any" min="0" value="${rate(c)}">`).join('') : '<span class="muted">All transactions are in SGD.</span>';
   const ms=months();
-  $('#dataStats').textContent = `${S.txns.length.toLocaleString()} transactions across ${accounts().length} account${accounts().length===1?'':'s'}${ms.length?`, ${monthLabel(ms[0])} to ${monthLabel(ms[ms.length-1])}`:''}. Stored only in this browser.`;
+  $('#dataStats').textContent = `${S.txns.length.toLocaleString()} transactions across ${accounts().length} account${accounts().length===1?'':'s'}${ms.length?`, ${monthLabel(ms[0])} to ${monthLabel(ms[ms.length-1])}`:''}. Stored only in this browser. App version ${APP_VERSION}.`;
 }
 
 /* ================= transaction dialog ================= */
