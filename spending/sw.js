@@ -1,5 +1,5 @@
 // Pocket Ledger offline cache. Bump VERSION whenever any file below changes.
-const VERSION = 'ledger-v2';
+const VERSION = 'ledger-v3';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png',
   'vendor/xlsx.full.min.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js'

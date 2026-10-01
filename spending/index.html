@@ -152,6 +152,22 @@ td.amt small{display:block;color:var(--muted);font-size:.78rem}
 .pill.x{background:transparent;border:1px dashed var(--line);color:var(--muted)}
 .tfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 2px;color:var(--ink-2);font-size:.9rem}
 
+/* planning cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.card-h h2{font-size:1.15rem}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 16px;margin-top:4px}
+.fact .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:1.02rem;margin-top:2px}
+.fact .d{font-size:.78rem;color:var(--muted)}
+.chip.ok{background:var(--accent-soft);color:var(--accent)}
+.hint{font-weight:400;color:var(--muted);font-size:.75rem}
+.holding{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:12px 0}
+.holding:first-of-type{border-top:0;padding-top:0}
+.holding .h-top{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.holding .h-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.holding:hover .h-name{text-decoration:underline}
+.holding .facts{margin-top:6px}
+
 /* settings */
 .stack{display:flex;flex-direction:column;gap:16px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -183,9 +199,11 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
   .grid2{grid-template-columns:minmax(0,1fr)}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-@media (max-width:640px){
+@media (max-width:1060px){
   .tabs{order:3;flex-basis:100%}
   .top-in .btn.primary{margin-left:auto}
+}
+@media (max-width:640px){
   .hide-sm{display:none}
 }
 @media (max-width:420px){
@@ -204,6 +222,9 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
       <button class="tab" role="tab" data-tab="overview" aria-selected="true">Overview</button>
       <button class="tab" role="tab" data-tab="txns" aria-selected="false">Transactions</button>
       <button class="tab" role="tab" data-tab="budgets" aria-selected="false">Budgets</button>
+      <button class="tab" role="tab" data-tab="wishlist" aria-selected="false" hidden>Wishlist</button>
+      <button class="tab" role="tab" data-tab="loans" aria-selected="false" hidden>Loans</button>
+      <button class="tab" role="tab" data-tab="assets" aria-selected="false" hidden>Net worth</button>
       <button class="tab" role="tab" data-tab="settings" aria-selected="false">Settings</button>
     </nav>
     <button class="btn primary" id="importBtn" type="button">Import<span class="hide-sm"> statement</span></button>
@@ -278,6 +299,28 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
     </div>
   </section>
 
+  <!-- WISHLIST -->
+  <section id="view-wishlist" hidden>
+    <div class="periodbar"><h1>Wishlist</h1><button class="btn primary" type="button" id="addWish">Add item</button></div>
+    <div id="wishSummary"></div>
+    <div class="stack" id="wishList"></div>
+    <div id="wishBought" style="margin-top:16px"></div>
+  </section>
+
+  <!-- LOANS -->
+  <section id="view-loans" hidden>
+    <div class="periodbar"><h1>Loans</h1><button class="btn primary" type="button" id="addLoan">Add loan</button></div>
+    <div id="loanSummary"></div>
+    <div class="stack" id="loanList"></div>
+  </section>
+
+  <!-- NET WORTH -->
+  <section id="view-assets" hidden>
+    <div class="periodbar"><h1>Net worth</h1><button class="btn primary" type="button" id="addAsset">Add holding</button></div>
+    <div id="assetSummary"></div>
+    <div class="grid2"><div class="stack" id="assetList"></div><div class="stack" id="assetSide"></div></div>
+  </section>
+
   <!-- SETTINGS -->
   <section id="view-settings" hidden>
     <div class="grid2">
@@ -304,6 +347,19 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
         </div>
       </div>
       <div class="stack">
+        <div class="panel">
+          <div class="panel-h"><h2>Tabs and your pay</h2></div>
+          <div class="stack" style="gap:8px">
+            <label class="row"><input type="checkbox" id="featWishlist"> Wishlist: plan big purchases</label>
+            <label class="row"><input type="checkbox" id="featLoans"> Loans: student loans and other debts</label>
+            <label class="row"><input type="checkbox" id="featAssets"> Net worth: stocks, bonds, savings, CPF</label>
+          </div>
+          <form class="row" id="salaryForm" style="margin-top:14px">
+            <label for="salary" style="font-size:.9rem;flex:1 1 220px">Monthly take-home pay (S$, optional)<span class="hint" style="display:block">After CPF. Used for planning; your statements are still read as usual.</span></label>
+            <input class="field num" id="salary" type="number" min="0" step="10" style="width:130px">
+            <button class="btn sm" type="submit">Save</button>
+          </form>
+        </div>
         <div class="panel">
           <div class="panel-h"><h2>Exchange rates</h2></div>
           <p class="muted" style="font-size:.85rem;margin-top:0">YouTrip wallets hold foreign currency. Totals are shown in SGD using these rates (1 unit = S$). Defaults are approximate; set them to what you actually paid.</p>
@@ -342,6 +398,19 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
     </div>
   </section>
 </main>
+
+<!-- generic form dialog (loans, wishlist, holdings) -->
+<dialog id="formDlg">
+  <form class="dlg" id="fForm">
+    <div><div class="eyebrow" id="fEyebrow"></div><h3 id="fTitle"></h3></div>
+    <p class="muted" id="fIntro" style="margin:0;font-size:.9rem"></p>
+    <div class="maps" id="fFields"></div>
+    <div class="row" style="justify-content:space-between">
+      <span class="row"><button class="btn danger" type="button" id="fDel">Delete</button><button class="btn sm danger" type="button" id="fDelYes" hidden>Confirm delete</button></span>
+      <span class="row"><button class="btn" type="button" id="fCancel">Cancel</button><button class="btn primary" type="submit">Save</button></span>
+    </div>
+  </form>
+</dialog>
 
 <!-- import mapping dialog -->
 <dialog id="mapDlg">
@@ -408,9 +477,15 @@ const MON = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','
 
 /* ================= state ================= */
 let S = load();
+migrate();
+function migrate(){
+  S.features = Object.assign({wishlist:true,loans:false,assets:true}, S.features);
+  if(!S.cats.some(c=>c.name==='Loan Repayments')) S.cats.splice(Math.max(0,S.cats.findIndex(c=>c.name==='Income')),0,{name:'Loan Repayments',kind:'excluded'});
+}
 const ui = {tab:'overview', period:null, acct:'', q:'', fMonth:'', fCat:'', fAcct:'', limit:200};
 
-function blank(){ return {txns:[],rules:[],cats:DEFAULT_CATS.map(c=>({...c})),budgets:{},fx:{},sample:false}; }
+function blank(){ return {txns:[],rules:[],cats:DEFAULT_CATS.map(c=>({...c})),budgets:{},fx:{},sample:false,
+  features:{wishlist:true,loans:false,assets:true}, profile:{salary:''}, loans:[], wishes:[], wishCfg:{monthly:''}, assets:[]}; }
 function load(){
   try{ const raw = localStorage.getItem(KEY); if(raw){ const d = JSON.parse(raw); return Object.assign(blank(), d); } }catch(e){}
   const d = blank(); d.sample = true; return d; // sample rows are generated at startup, below
@@ -448,6 +523,7 @@ function compiledRules(){
 }
 function categorise(desc, amount, account){
   const d = ' '+String(desc).toUpperCase()+' ';
+  if(amount<0 && (S.loans||[]).some(l=>l.keyword && kwRegex(l.keyword).test(d))) return 'Loan Repayments';
   for(const r of compiledRules()) if(r.re.test(d) && S.cats.some(c=>c.name===r.cat)) {
     if(r.cat==='Income' && amount<0) continue;
     return r.cat;
@@ -828,14 +904,15 @@ function inScope(t, period, acct){
   return t.date.startsWith(period);
 }
 function totals(list){
-  let spend=0, income=0, moved=0; const byCat={}, byMer={};
+  let spend=0, income=0, moved=0, repaid=0; const byCat={}, byMer={};
   for(const t of list){
     const k = kindOf(t.category), v = sgd(t);
     if(k==='spend'){ spend -= v; byCat[t.category]=(byCat[t.category]||0)-v; const m=merchant(t.desc); byMer[m]=byMer[m]||{v:0,n:0}; byMer[m].v-=v; byMer[m].n++; }
     else if(k==='income') income += v;
     else if(t.category==='Transfers' && v>0) moved += v;
+    else if(t.category==='Loan Repayments') repaid -= v;
   }
-  return {spend,income,moved,byCat,byMer};
+  return {spend,income,moved,repaid,byCat,byMer};
 }
 
 /* ================= render ================= */
@@ -843,8 +920,12 @@ function render(){
   $('#sampleBanner').hidden = !S.sample;
   const ms = months();
   if(!ui.period || (ui.period!=='all' && ui.period!=='12m' && !ms.includes(ui.period))) ui.period = ms[ms.length-1] || 'all';
+  ['wishlist','loans','assets'].forEach(f=>{ $(`.tab[data-tab="${f}"]`).hidden = !S.features[f]; if(ui.tab===f && !S.features[f]) ui.tab='overview'; });
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===ui.tab));
-  ['overview','txns','budgets','settings'].forEach(v=>$('#view-'+v).hidden = v!==ui.tab);
+  ['overview','txns','budgets','wishlist','loans','assets','settings'].forEach(v=>$('#view-'+v).hidden = v!==ui.tab);
+  if(ui.tab==='wishlist') renderWishlist();
+  if(ui.tab==='loans') renderLoans();
+  if(ui.tab==='assets') renderAssets();
   if(ui.tab==='overview') renderOverview();
   if(ui.tab==='txns') renderTxns();
   if(ui.tab==='budgets') renderBudgets();
@@ -878,11 +959,14 @@ function renderOverview(){
   let delta='';
   if(isMonth){ const prev = addMonth(P,-1); const pt = totals(S.txns.filter(t=>inScope(t,prev,ui.acct)));
     if(pt.spend>0){ const ch=(T.spend-pt.spend)/pt.spend*100; delta = `<span class="${ch>0?'up':'down'}">${ch>0?'▲':'▼'} ${Math.abs(ch).toFixed(0)}%</span> vs ${monthLabel(prev,true)}`; } else delta='No data for last month'; }
-  const net = T.income - T.spend;
+  const net = T.income - T.spend - T.repaid;
+  const sal = num(S.profile.salary), curKey = todayStr().slice(0,7);
+  let incNote = T.moved>0.005 ? `Excludes ${fmt(T.moved,0)} moved between your accounts` : 'Salary, interest, refunds';
+  if(isMonth && sal>0 && P<curKey && T.income < sal*0.8) incNote = `<span class="up">Expected about ${fmt(sal,0)} pay. Check it's under Income</span>`;
   $('#kpis').innerHTML = [
     ['Spent', fmt(T.spend), delta || `${list.filter(t=>kindOf(t.category)==='spend').length} transactions`],
-    ['Income', fmt(T.income), T.moved>0.005 ? `Excludes ${fmt(T.moved,0)} moved between your accounts` : 'Salary, interest, refunds'],
-    ['Saved', fmt(net), T.income>0 ? `${(net/T.income*100).toFixed(0)}% of income` : 'No income recorded'],
+    ['Income', fmt(T.income), incNote],
+    ['Saved', fmt(net), (T.income>0 ? `${(net/T.income*100).toFixed(0)}% of income` : 'No income recorded') + (T.repaid>0.005?`, after ${fmt(T.repaid,0)} loan repayments`:'')],
     ['Per day', fmt(perDay), daysLabel]
   ].map(([l,v,d])=>`<div class="kpi"><div class="eyebrow">${l}</div><div class="v" title="${v}">${v}</div><div class="d">${d}</div></div>`).join('');
 
@@ -1007,7 +1091,9 @@ function renderSettings(){
   $('#builtinCount').textContent = n;
   const counts={}; S.txns.forEach(t=>counts[t.category]=(counts[t.category]||0)+1);
   $('#catEdit').innerHTML = S.cats.map((c,i)=>`<span>${esc(c.name)} <span class="muted" style="font-size:.8rem">${counts[c.name]||0}</span></span><select data-kind="${i}" aria-label="How ${esc(c.name)} counts"><option value="spend" ${c.kind==='spend'?'selected':''}>Spending</option><option value="income" ${c.kind==='income'?'selected':''}>Income</option><option value="excluded" ${c.kind==='excluded'?'selected':''}>Excluded</option></select>${['Other','Income'].includes(c.name)?'<span></span>':`<button class="btn sm" type="button" data-delcat="${i}">Remove</button>`}`).join('');
-  const curs = [...new Set(S.txns.map(t=>t.currency||'SGD'))].filter(c=>c!=='SGD').sort();
+  ['wishlist','loans','assets'].forEach(f=>{ $('#feat'+f[0].toUpperCase()+f.slice(1)).checked = !!S.features[f]; });
+  $('#salary').value = S.profile.salary||'';
+  const curs = [...new Set(S.txns.map(t=>t.currency||'SGD').concat(S.assets.filter(a=>a.type==='stock').map(a=>(a.currency||'SGD').toUpperCase())))].filter(c=>c!=='SGD').sort();
   $('#fxEdit').innerHTML = curs.length ? curs.map(c=>`<label for="fx-${c}">1 ${c} =</label><input class="field num" id="fx-${c}" data-fx="${c}" type="number" step="any" min="0" value="${rate(c)}">`).join('') : '<span class="muted">All transactions are in SGD.</span>';
   const ms=months();
   $('#dataStats').textContent = `${S.txns.length.toLocaleString()} transactions across ${accounts().length} account${accounts().length===1?'':'s'}${ms.length?`, ${monthLabel(ms[0])} to ${monthLabel(ms[ms.length-1])}`:''}. Stored only in this browser.`;
@@ -1094,12 +1180,32 @@ $('#dlExport').onclick=()=>{ const a=document.createElement('a'); a.href=URL.cre
 $('#restoreBtn').onclick=()=>$('#restoreInput').click();
 $('#restoreInput').onchange=e=>{ const f=e.target.files[0]; if(f) restore(f); e.target.value=''; };
 async function restore(f){
-  try{ const d=JSON.parse(await f.text()); if(!Array.isArray(d.txns)) throw 0; S=Object.assign(blank(),d); S.sample=false; ruleCache=null; save(); render(); toast(`Restored ${S.txns.length} transactions.`); }
+  try{ const d=JSON.parse(await f.text()); if(!Array.isArray(d.txns)) throw 0; S=Object.assign(blank(),d); migrate(); S.sample=false; ruleCache=null; save(); render(); toast(`Restored ${S.txns.length} transactions.`); }
   catch(e){ toast('That file is not a Pocket Ledger backup.'); }
 }
 $('#wipeBtn').onclick=()=>{ $('#wipeConfirm').hidden=false; };
 $('#wipeNo').onclick=()=>{ $('#wipeConfirm').hidden=true; };
 $('#wipeYes').onclick=()=>{ S.txns=[]; S.sample=false; save(); $('#wipeConfirm').hidden=true; render(); toast('All transactions deleted.'); };
+
+// planning tabs
+['Wishlist','Loans','Assets'].forEach(F=>{ $('#feat'+F).onchange=e=>{ S.features[F.toLowerCase()]=e.target.checked; save(); render(); toast(`${F==='Assets'?'Net worth':F} tab ${e.target.checked?'shown':'hidden'}.`); }; });
+$('#salaryForm').onsubmit=e=>{ e.preventDefault(); const v=num($('#salary').value); S.profile.salary = v>0 ? String(v) : ''; save(); toast(v>0?`Take-home pay set to ${fmt(v,0)} a month.`:'Take-home pay cleared; planning uses your statements.'); };
+$('#addLoan').onclick=()=>loanForm(null);
+$('#addWish').onclick=()=>wishForm(null);
+$('#addAsset').onclick=()=>assetForm(null);
+$('#view-loans').addEventListener('click',e=>{ const b=e.target.closest('[data-edit-loan]'); if(b) loanForm(S.loans.find(l=>l.id===b.dataset.editLoan)); });
+$('#view-assets').addEventListener('click',e=>{ const b=e.target.closest('[data-aedit]'); if(b) assetForm(S.assets.find(a=>a.id===b.dataset.aedit)); });
+$('#view-wishlist').addEventListener('click',e=>{
+  const t=e.target.closest('button'); if(!t) return; const id=t.dataset.wedit||t.dataset.wbuy||t.dataset.wmove||t.dataset.wundo; if(!id) return;
+  const w=S.wishes.find(x=>x.id===id);
+  if(t.dataset.wedit) return wishForm(w);
+  if(t.dataset.wbuy){ w.bought=todayStr(); toast(`${w.name} marked as bought.`); }
+  if(t.dataset.wundo) delete w.bought;
+  if(t.dataset.wmove){ const act=S.wishes.filter(x=>!x.bought), i=act.indexOf(w), j=i+(+t.dataset.d); if(j<0||j>=act.length) return;
+    const a=S.wishes.indexOf(act[i]), b=S.wishes.indexOf(act[j]); [S.wishes[a],S.wishes[b]]=[S.wishes[b],S.wishes[a]]; }
+  save(); renderWishlist();
+});
+$('#view-wishlist').addEventListener('submit',e=>{ if(e.target.id!=='wishCfgForm') return; e.preventDefault(); const v=num($('#wishMonthly').value), st=num($('#wishStart').value); S.wishCfg.monthly = v>0?String(v):''; S.wishCfg.start = st>0?String(st):''; save(); renderWishlist(); toast('Plan updated.'); });
 
 // drag & drop anywhere
 let dragDepth=0;
@@ -1108,6 +1214,327 @@ addEventListener('dragleave',()=>{ if(--dragDepth<=0){ dragDepth=0; $('#drop').h
 addEventListener('dragover',e=>e.preventDefault());
 addEventListener('drop',e=>{ e.preventDefault(); dragDepth=0; $('#drop').hidden=true; if(e.dataTransfer.files.length) enqueue([...e.dataTransfer.files]); });
 addEventListener('resize',()=>{ if(ui.tab==='overview') drawMonthChart(); });
+
+/* ================= planning: loans, wishlist, net worth ================= */
+const todayStr = ()=>{ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+function addMonthsDate(ds,n){ let [y,m,d]=ds.split('-').map(Number); m+=n; y+=Math.floor((m-1)/12); m=((m-1)%12+12)%12+1; return y+'-'+pad(m)+'-'+pad(Math.min(d,new Date(y,m,0).getDate())); }
+const monthsBetween = (a,b)=>{ const [y1,m1]=a.split('-').map(Number),[y2,m2]=b.split('-').map(Number); return (y2-y1)*12+(m2-m1); };
+const dayDiff = (a,b)=>(Date.parse(b)-Date.parse(a))/864e5;
+const fmtDate = ds=>{ const [y,m,d]=ds.split('-'); return +d+' '+monthLabel(y+'-'+m); };
+const inMonths = n=>n<=0?'now':n===1?'in 1 month':n<24?`in ${n} months`:`in ${(n/12).toFixed(1).replace(/\.0$/,'')} years`;
+const num = v=>{ const n=parseFloat(v); return isNaN(n)?0:n; };
+const fact = (k,v,sub)=>`<div class="fact"><div class="eyebrow">${k}</div><div class="v">${v}</div>${sub?`<div class="d">${sub}</div>`:''}</div>`;
+
+/* ---------- generic form dialog ---------- */
+let formCtx = null;
+function openForm(ctx){
+  formCtx = {...ctx, values:{...ctx.values}};
+  $('#fTitle').textContent = ctx.title; $('#fEyebrow').textContent = ctx.eyebrow||'';
+  $('#fIntro').innerHTML = ctx.intro||''; $('#fIntro').hidden = !ctx.intro;
+  $('#fDel').hidden = !ctx.onDelete; $('#fDelYes').hidden = true;
+  drawForm(); $('#formDlg').showModal();
+}
+function drawForm(){
+  const v = formCtx.values;
+  $('#fFields').innerHTML = formCtx.fields(v).map(f=>{
+    const val = v[f.k] ?? '', id = 'ff-'+f.k;
+    const input = f.type==='select'
+      ? `<select id="${id}" data-k="${f.k}">${f.options.map(([o,l])=>`<option value="${esc(o)}" ${String(val)===String(o)?'selected':''}>${esc(l)}</option>`).join('')}</select>`
+      : `<input class="field" id="${id}" data-k="${f.k}" type="${f.type||'text'}" ${f.type==='number'?`step="${f.step||'any'}" min="${f.min??0}"`:''} ${f.req?'required':''} placeholder="${esc(f.ph||'')}" value="${esc(val)}">`;
+    return `<label style="${f.full?'grid-column:1/-1':''}">${esc(f.label)}${input}${f.hint?`<span class="hint">${esc(f.hint)}</span>`:''}</label>`;
+  }).join('');
+}
+$('#fFields').addEventListener('input',e=>{ const k=e.target.dataset.k; if(k) formCtx.values[k]=e.target.value; });
+$('#fFields').addEventListener('change',e=>{ const k=e.target.dataset.k; if(!k) return; formCtx.values[k]=e.target.value; if((formCtx.redrawOn||[]).includes(k)) drawForm(); });
+$('#fForm').addEventListener('submit',e=>{ e.preventDefault(); const err=formCtx.onSave(formCtx.values); if(err){ toast(err); return; } $('#formDlg').close(); save(); render(); });
+$('#fCancel').onclick=()=>$('#formDlg').close();
+$('#fDel').onclick=()=>{ $('#fDelYes').hidden=false; };
+$('#fDelYes').onclick=()=>{ formCtx.onDelete(); $('#formDlg').close(); save(); render(); };
+function upsert(list, item){ const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); }
+
+/* ---------- cash flow used for planning ---------- */
+function cashflow(){
+  const cur = todayStr().slice(0,7);
+  const full = months().filter(m=>m<cur).slice(-3);
+  let inc=0, sp=0; full.forEach(m=>{ const T=totals(S.txns.filter(t=>t.date.startsWith(m))); inc+=T.income; sp+=T.spend; });
+  const n = full.length || 1, sal = num(S.profile.salary);
+  return { income: sal>0 ? sal : inc/n, spend: sp/n, fromSalary: sal>0, months: full.length };
+}
+
+/* ---------- loans ---------- */
+function loanPaid(l){
+  if(!l.keyword) return {sum:0,n:0};
+  const re = kwRegex(l.keyword); let sum=0, n=0;
+  S.txns.forEach(t=>{ if(t.amount<0 && t.date>=(l.asOf||'') && re.test(' '+t.desc.toUpperCase()+' ')){ sum-=sgd(t); n++; } });
+  return {sum,n};
+}
+function loanPlan(l){
+  const r = num(l.rate)/100/12, tm = todayStr().slice(0,7);
+  const asOfM = (l.asOf||todayStr()).slice(0,7), intFromM = l.interestFrom ? l.interestFrom.slice(0,7) : '0000-00';
+  const paid = loanPaid(l);
+  let bal = num(l.balance);
+  for(let m=asOfM; m<tm; m=addMonth(m,1)) if(m>=intFromM) bal *= 1+r;      // interest since you entered the balance
+  bal = Math.max(0, bal - paid.sum);
+  const startM = (l.repayStart||todayStr()).slice(0,7);
+  let b = bal;
+  for(let m=tm; m<startM; m=addMonth(m,1)) if(m>=intFromM) b *= 1+r;       // interest until repayments begin
+  const balAtStart = b, monthsToStart = Math.max(0, monthsBetween(tm,startM));
+  const n = Math.round(num(l.tenure));
+  let pay = num(l.instalment);
+  if(!pay) pay = n ? (r ? b*r/(1-Math.pow(1+r,-n)) : b/n) : b;               // no plan given: repay in one go
+  const schedule = {}; let interest = 0, m = startM>tm ? startM : tm, g = 0, never = false;
+  while(b > 0.005 && g++ < 600){
+    const i = m>=intFromM ? b*r : 0;
+    if(pay <= i){ never = true; break; }
+    b += i; interest += i; const p = Math.min(pay,b); b -= p; schedule[m] = p; m = addMonth(m,1);
+  }
+  return {bal, balAtStart, monthsToStart, startM, pay, n: Object.keys(schedule).length, payoff: addMonth(m,-1), interest, schedule, never, paid,
+    setAside: monthsToStart>0 ? balAtStart/monthsToStart : null};
+}
+const loanDueIn = m=>!S.features.loans ? 0 : S.loans.reduce((a,l)=>a+(loanPlan(l).schedule[m]||0),0);
+
+function loanForm(l){
+  const isNew = !l;
+  openForm({
+    title: isNew?'Add a loan':l.name, eyebrow:'Loan',
+    intro: isNew?'Enter what you know; you can change it any time. For an MOE Tuition Fee Loan or similar, the bank or school letter lists the amount, interest rate and first repayment date.':'',
+    values: l || {id:uid(), asOf:todayStr(), rate:'0'},
+    fields: ()=>[
+      {k:'name',label:'Name',req:true,ph:'e.g. Tuition fee loan'},
+      {k:'balance',label:'Amount owed now (S$)',type:'number',req:true,step:'0.01'},
+      {k:'asOf',label:'As of',type:'date',hint:'The date that amount was correct'},
+      {k:'rate',label:'Interest rate (% per year)',type:'number',step:'0.01',hint:'0 if interest-free'},
+      {k:'interestFrom',label:'Interest starts (optional)',type:'date',hint:'Leave blank if interest is already charged'},
+      {k:'repayStart',label:'First repayment due',type:'date',req:true},
+      {k:'instalment',label:'Monthly instalment (S$, optional)',type:'number',step:'0.01',hint:'If the lender fixed one'},
+      {k:'tenure',label:'Or repay over (months, optional)',type:'number',step:'1',hint:'Blank and no instalment = repay in one go'},
+      {k:'keyword',label:'Repayments appear in bank as (optional)',full:true,ph:'e.g. TUITION FEE LOAN',hint:'A word from the bank description. Matching payments are counted as repayments, not spending.'},
+    ],
+    onSave: v=>{ if(!v.name||!(num(v.balance)>=0)||!v.repayStart) return 'Fill in the name, amount and first repayment date.';
+      upsert(S.loans, v); applyLoanKeywords(); },
+    onDelete: isNew?null:()=>{ S.loans = S.loans.filter(x=>x.id!==l.id); }
+  });
+}
+function applyLoanKeywords(){
+  S.txns.forEach(t=>{ if(t.manual||t.pair||t.amount>=0) return;
+    const hit = S.loans.some(l=>l.keyword && kwRegex(l.keyword).test(' '+t.desc.toUpperCase()+' '));
+    if(hit) t.category='Loan Repayments'; else if(t.category==='Loan Repayments') t.category=categorise(t.desc,t.amount,t.account); });
+}
+function renderLoans(){
+  const box = $('#loanList');
+  if(!S.loans.length){ $('#loanSummary').innerHTML=''; box.innerHTML = `<div class="panel empty">No loans yet. Add one to see what you'll pay each month, when it's cleared, and how much to set aside before repayments start.</div>`; return; }
+  const plans = S.loans.map(l=>[l,loanPlan(l)]);
+  const owe = plans.reduce((a,[,p])=>a+p.bal,0), tm = todayStr().slice(0,7);
+  const nextDue = plans.map(([,p])=>p.startM).filter(m=>m>tm).sort()[0];
+  $('#loanSummary').innerHTML = `<div class="kpis">${[
+    ['Owed now', fmt(owe), `${S.loans.length} loan${S.loans.length===1?'':'s'}`],
+    ['Due this month', fmt(loanDueIn(tm)||0), 'Scheduled repayments'],
+    ['Repayments start', nextDue?monthLabel(nextDue):'Started', nextDue?inMonths(monthsBetween(tm,nextDue)):'Already repaying'],
+    ['Total interest', fmt(plans.reduce((a,[,p])=>a+p.interest,0)), 'If you follow the plan below'],
+  ].map(([l,v,d])=>`<div class="kpi"><div class="eyebrow">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')}</div>`;
+  const cf = cashflow(), spare = cf.income - cf.spend;
+  box.innerHTML = plans.map(([l,p])=>{
+    const startTxt = p.monthsToStart>0 ? `${monthLabel(p.startM)} (${inMonths(p.monthsToStart)})` : 'Repaying now';
+    const lump = !num(l.instalment) && !num(l.tenure);
+    const done = p.paid.sum/(p.paid.sum+p.bal||1);
+    return `<div class="card"><div class="card-h"><div><h2>${esc(l.name)}</h2><span class="muted" style="font-size:.85rem">${num(l.rate)?`${num(l.rate)}% a year${l.interestFrom?`, interest from ${fmtDate(l.interestFrom)}`:''}`:'Interest-free'}</span></div><button class="btn sm" type="button" data-edit-loan="${l.id}">Edit</button></div>
+      <div class="facts">
+        ${fact('Owed now', fmt(p.bal), p.paid.n?`${fmt(p.paid.sum,0)} repaid in ${p.paid.n} payments`:'')}
+        ${fact('Repayments start', startTxt, p.monthsToStart>0 && p.balAtStart-p.bal>0.5 ? `Grows to ${fmt(p.balAtStart)} by then` : '')}
+        ${p.never ? fact('Monthly instalment', fmt(p.pay), '<span class="up">Too low to cover the interest</span>')
+          : lump ? fact('Plan', 'Repay in one go', fmt(p.balAtStart)) : fact('Monthly instalment', fmt(p.pay), `${p.n} payments, cleared ${monthLabel(p.payoff)}`)}
+        ${lump && p.setAside!=null ? fact('Set aside from now', fmt(p.setAside)+'/mo', `Has the full amount ready by ${monthLabel(p.startM)}`+(spare>0 && p.setAside>spare?`. <span class="up">More than your usual ${fmt(spare,0)} spare a month</span>`:'')) : fact('Interest you will pay', fmt(p.interest), lump?'':'Over the whole loan')}
+      </div>
+      <div class="bud" style="border:0;padding-bottom:0"><span class="muted" style="font-size:.85rem">Repaid</span><span class="num" style="font-size:.85rem">${(done*100).toFixed(0)}%</span><div class="track"><div class="fill" style="width:${done*100}%"></div></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- wishlist ---------- */
+const PRI = [['need','Need'],['want','Want'],['nice','Nice to have']];
+function wishPlan(){
+  const cf = cashflow(), cur = todayStr().slice(0,7);
+  const fixed = num(S.wishCfg.monthly), H = 240;
+  // Spare cash each month after spending and loan repayments.
+  const flow = []; for(let k=0;k<H;k++){ const m=addMonth(cur,k); flow.push(fixed>0 ? fixed : cf.income - cf.spend - loanDueIn(m)); }
+  // Money you can spend on wishes by month k without leaving a later loan payment short:
+  // the lowest running total from month k onwards.
+  const cum = []; flow.reduce((a,v,k)=>(cum[k]=a+v), num(S.wishCfg.start));
+  const avail = Array(H); let lo = Infinity; for(let k=H-1;k>=0;k--){ lo=Math.min(lo,cum[k]); avail[k]=lo; }
+  const items = S.wishes.filter(w=>!w.bought);
+  const ready = {}; let used = 0, i = 0;
+  for(let k=0; k<H && i<items.length; k++){
+    while(i<items.length){ const need=Math.max(0,num(items[i].price)-num(items[i].saved)); if(avail[k]-used < need-0.005) break; used+=need; ready[items[i].id]=addMonth(cur,k); i++; }
+  }
+  let loans12 = 0; for(let k=0;k<12;k++) loans12 += loanDueIn(addMonth(cur,k));
+  return {cf, cap:Math.max(0,fixed>0?fixed:cf.income-cf.spend), fixed, ready, cur, loans12, loanShort: !fixed && avail[0]<0 ? -avail[0] : 0,
+    last: i===items.length && items.length ? ready[items[items.length-1].id] : null, unreachable: items.length-i};
+}
+function wishForm(w){
+  const isNew = !w;
+  openForm({ title:isNew?'Add to wishlist':w.name, eyebrow:'Wishlist',
+    values: w || {id:uid(), priority:'want', saved:'0'},
+    fields: ()=>[
+      {k:'name',label:'Item',req:true,ph:'e.g. MacBook Air'},
+      {k:'price',label:'Price (S$)',type:'number',req:true,step:'0.01'},
+      {k:'saved',label:'Already set aside (S$)',type:'number',step:'0.01'},
+      {k:'priority',label:'Priority',type:'select',options:PRI},
+      {k:'target',label:'Want it by (optional)',type:'date'},
+      {k:'note',label:'Note or link (optional)',full:true},
+    ],
+    onSave: v=>{ if(!v.name||!(num(v.price)>0)) return 'Add a name and a price.'; if(isNew){ const at=S.wishes.findIndex(x=>!x.bought && PRI.findIndex(p=>p[0]===x.priority)>PRI.findIndex(p=>p[0]===v.priority)); if(at<0) S.wishes.push(v); else S.wishes.splice(at,0,v); } else upsert(S.wishes,v); },
+    onDelete: isNew?null:()=>{ S.wishes=S.wishes.filter(x=>x.id!==w.id); }
+  });
+}
+function renderWishlist(){
+  const P = wishPlan(), cf = P.cf, active = S.wishes.filter(w=>!w.bought), bought = S.wishes.filter(w=>w.bought);
+  const total = active.reduce((a,w)=>a+Math.max(0,num(w.price)-num(w.saved)),0);
+  $('#wishSummary').innerHTML = `<div class="panel" style="margin-bottom:16px">
+    <div class="panel-h"><h2>Your monthly plan</h2></div>
+    <div class="facts" style="margin-top:0">
+      ${fact('Money in', fmt(cf.income,0)+'/mo', cf.fromSalary?'Your take-home pay (Settings)':cf.months?`Average of last ${cf.months} full month${cf.months===1?'':'s'}`:'Import statements or set your pay in Settings')}
+      ${fact('Spending', fmt(cf.spend,0)+'/mo', cf.months?`Average of last ${cf.months} full month${cf.months===1?'':'s'}`:'No full months yet')}
+      ${S.features.loans?fact('Loan repayments', fmt(P.loans12,0), 'Due in the next 12 months. Covered before the wishlist'):''}
+      ${fact('Spare each month', fmt(P.cap,0)+'/mo', P.fixed?'Fixed amount you chose':'Money in minus spending')}
+    </div>
+    <form class="maps" id="wishCfgForm" style="margin-top:14px;align-items:end">
+      <label for="wishStart">Savings you can use now (S$)<input class="field num" id="wishStart" type="number" min="0" step="10" value="${esc(S.wishCfg.start||'')}" placeholder="0"><span class="hint">Money already in the bank that isn't your emergency fund</span></label>
+      <label for="wishMonthly">Fixed amount per month (S$, optional)<input class="field num" id="wishMonthly" type="number" min="0" step="10" value="${esc(S.wishCfg.monthly||'')}" placeholder="All spare cash"><span class="hint">Blank = use everything left over</span></label>
+      <div><button class="btn" type="submit">Update plan</button></div>
+    </form>
+    <p class="muted" style="font-size:.85rem;margin:10px 0 0">Items are funded top to bottom: once one is paid for, its money moves to the next. Use ↑ ↓ to reorder. ${P.last?`At this pace, everything is affordable by <b>${monthLabel(P.last)}</b>.`:''}${P.unreachable?` <span class="up">${P.unreachable} item${P.unreachable===1?' is':'s are'} out of reach within 20 years at this pace.</span>`:''} Still to save: <b class="num">${fmt(total,0)}</b>.</p>
+    ${P.loanShort?`<p class="err" style="margin:10px 0 0">At your usual pace you'll be about <b>${fmt(P.loanShort,0)}</b> short for a loan repayment. The wishlist waits until that's covered. You could spend less, or check whether the loan can be paid in instalments.</p>`:''}
+  </div>`;
+  $('#wishList').innerHTML = active.length ? active.map((w,idx)=>{
+    const price=num(w.price), saved=Math.min(price,num(w.saved)), r=P.ready[w.id];
+    let chip = r ? (r===P.cur?'<span class="chip ok">✓ Affordable now</span>':`<span class="chip">Ready ${monthLabel(r)}</span>`) : '<span class="chip over">✕ Out of reach</span>';
+    let tgt='';
+    if(w.target){ const tM=w.target.slice(0,7), left=Math.max(1,monthsBetween(P.cur,tM)+1);
+      tgt = (!r||r>tM) ? `<span class="chip warn">! ${r?monthsBetween(tM,r)+' mo late':'Late'} for ${monthLabel(tM,true)}, needs ${fmt((price-saved)/left,0)}/mo</span>` : `<span class="chip ok">✓ On time for ${monthLabel(tM,true)}</span>`; }
+    return `<div class="card wish"><div class="card-h"><div style="min-width:0"><span class="eyebrow">${esc((PRI.find(p=>p[0]===w.priority)||PRI[1])[1])}</span><h2>${esc(w.name)}</h2>${w.note?`<div class="muted" style="font-size:.85rem;overflow-wrap:anywhere">${esc(w.note)}</div>`:''}</div>
+      <div class="row" style="flex-wrap:nowrap"><button class="iconbtn" type="button" data-wmove="${w.id}" data-d="-1" ${idx===0?'disabled':''} aria-label="Move up">↑</button><button class="iconbtn" type="button" data-wmove="${w.id}" data-d="1" ${idx===active.length-1?'disabled':''} aria-label="Move down">↓</button></div></div>
+      <div class="bud" style="border:0;padding-bottom:0"><span class="num">${fmt(saved,0)} <span class="muted">set aside of ${fmt(price,0)}</span></span><span></span><div class="track"><div class="fill" style="width:${saved/price*100}%"></div></div></div>
+      <div class="row" style="gap:6px">${chip}${tgt}</div>
+      <div class="row"><button class="btn sm" type="button" data-wedit="${w.id}">Edit</button><button class="btn sm" type="button" data-wbuy="${w.id}">Mark bought</button></div></div>`;
+  }).join('') : `<div class="panel empty">Your wishlist is empty. Add the big things you're saving for to see when you can afford each one.</div>`;
+  $('#wishBought').innerHTML = bought.length ? `<details><summary class="muted" style="cursor:pointer">Bought (${bought.length}, ${fmt(bought.reduce((a,w)=>a+num(w.price),0),0)})</summary><ul class="list" style="margin-top:8px">${bought.map(w=>`<li><span class="l">${esc(w.name)} <span class="muted" style="font-size:.8rem">${w.bought}</span></span><span class="row"><span class="num">${fmt(num(w.price),0)}</span><button class="btn sm" type="button" data-wundo="${w.id}">Undo</button></span></li>`).join('')}</ul></details>` : '';
+}
+
+/* ---------- net worth: assets ---------- */
+const ATYPES = [['cash','Cash & savings'],['stock','Stocks, ETFs & funds'],['ssb','Singapore Savings Bond (SSB)'],['bond','Government / other bond'],['tbill','Treasury bill (T-bill)'],['fd','Fixed deposit'],['cpf','CPF'],['other','Other']];
+const atypeName = t=>(ATYPES.find(a=>a[0]===t)||ATYPES[7])[1];
+function ssbRates(a){
+  let r = String(a.rates||'').split(/[,;\s]+/).map(parseFloat).filter(x=>!isNaN(x));
+  if(r.length===1) r = Array(10).fill(r[0]);
+  while(r.length && r.length<10) r.push(r[r.length-1]);
+  return r.slice(0,10);
+}
+// Value today plus every interest/principal payment, for any holding type.
+function assetCalc(a){
+  const T = todayStr(), o = {value:0, cost:null, pays:[], lines:[], interestTotal:null, received:0, next:null, maturity:null, yearly:null};
+  const finish = ()=>{ const past=o.pays.filter(p=>p.date<=T && !p.principal); o.received=past.reduce((s,p)=>s+p.amt,0); o.next=o.pays.find(p=>p.date>T)||null; return o; };
+  if(a.type==='stock'){
+    const fx = rate(a.currency||'SGD'); o.value = num(a.units)*num(a.price)*fx; if(num(a.cost)) o.cost = num(a.units)*num(a.cost)*fx;
+    o.lines.push(`${num(a.units).toLocaleString()} units at ${num(a.price).toLocaleString()} ${a.currency||'SGD'}${a.priceDate?`, price as of ${fmtDate(a.priceDate)}`:''}`); return o;
+  }
+  if(a.type==='ssb' && a.issueDate){
+    const A = num(a.amount), r = ssbRates(a); if(!r.length) return (o.value=A, o);
+    for(let k=1;k<=20;k++) o.pays.push({date:addMonthsDate(a.issueDate,6*k), amt:A*r[Math.floor((k-1)/2)]/100/2, name:a.name});
+    o.maturity = addMonthsDate(a.issueDate,120); o.pays.push({date:o.maturity, amt:A, principal:true, name:a.name});
+    o.interestTotal = o.pays.filter(p=>!p.principal).reduce((s,p)=>s+p.amt,0); o.yearly = o.interestTotal/A/10*100; o.cost = A;
+    finish();
+    const last = [...o.pays].reverse().find(p=>p.date<=T && !p.principal)?.date || a.issueDate;
+    const accrued = o.next && !o.next.principal ? o.next.amt * Math.max(0,Math.min(1,dayDiff(last,T)/dayDiff(last,o.next.date))) : 0;
+    o.value = T>=o.maturity ? 0 : A + accrued; o.cost = T>=o.maturity ? null : A;
+    o.lines.push(`Rates by year: ${r.map(x=>x+'%').join(', ')}`); return o;
+  }
+  if(a.type==='bond' && a.maturity){
+    const F = num(a.face), f = Math.max(1,Math.round(num(a.freq)||2)), c = num(a.coupon);
+    for(let d=a.maturity; d>(a.buyDate||'0000'); d=addMonthsDate(d,-12/f)) o.pays.unshift({date:d, amt:F*c/100/f, name:a.name});
+    o.pays.push({date:a.maturity, amt:F, principal:true, name:a.name}); o.maturity = a.maturity;
+    o.interestTotal = o.pays.filter(p=>!p.principal).reduce((s,p)=>s+p.amt,0);
+    finish(); o.cost = num(a.cost)||null;
+    o.value = T>=a.maturity ? 0 : num(a.price) ? F*num(a.price)/100 : F;
+    const yrs = Math.max(0.1, dayDiff(a.buyDate||T, a.maturity)/365.25);
+    if(o.cost) o.yearly = ((o.interestTotal + F - o.cost)/o.cost)/yrs*100; else o.yearly = c;
+    o.lines.push(`${c}% a year, paid ${f===2?'twice a year':f===1?'yearly':f+' times a year'}`); return o;
+  }
+  if(a.type==='tbill' && a.maturity){
+    const F=num(a.face), C=num(a.cost)||F; o.maturity=a.maturity; o.cost=C;
+    o.pays.push({date:a.maturity, amt:F-C, name:a.name}, {date:a.maturity, amt:C, principal:true, name:a.name});
+    const frac = a.buyDate ? Math.max(0,Math.min(1,dayDiff(a.buyDate,T)/Math.max(1,dayDiff(a.buyDate,a.maturity)))) : 0;
+    o.value = T>=a.maturity ? 0 : C + (F-C)*frac; o.interestTotal = F-C;
+    if(a.buyDate) o.yearly = (F-C)/C/(Math.max(1,dayDiff(a.buyDate,a.maturity))/365.25)*100;
+    finish(); return o;
+  }
+  if(a.type==='fd' && a.maturity){
+    const P=num(a.principal), r=num(a.rate)/100, yrs=Math.max(0,dayDiff(a.start||T,a.maturity)/365.25);
+    const el = a.start ? Math.max(0,Math.min(yrs,dayDiff(a.start,T)/365.25)) : 0;
+    o.maturity=a.maturity; o.cost=P; o.interestTotal=P*r*yrs; o.yearly=num(a.rate);
+    o.pays.push({date:a.maturity, amt:o.interestTotal, name:a.name}, {date:a.maturity, amt:P, principal:true, name:a.name});
+    o.value = T>=a.maturity ? 0 : P*(1+r*el); finish(); return o;
+  }
+  o.value = num(a.value); return o;
+}
+function assetForm(a){
+  const isNew = !a;
+  openForm({ title:isNew?'Add a holding':a.name, eyebrow:'Net worth', redrawOn:['type'],
+    values: a || {id:uid(), type:'stock', currency:'SGD', freq:'2'},
+    fields: v=>{
+      const f=[{k:'type',label:'Type',type:'select',options:ATYPES,full:true},{k:'name',label:'Name',req:true,ph:{stock:'e.g. STI ETF (ES3)',ssb:'e.g. SSB GX24100N',bond:'e.g. SGS 10-year bond',tbill:'e.g. 6-month T-bill',fd:'e.g. DBS fixed deposit',cpf:'e.g. CPF Ordinary Account',cash:'e.g. DBS savings'}[v.type]||''}];
+      if(v.type==='stock') f.push({k:'units',label:'Units owned',type:'number',req:true},{k:'cost',label:'Average price paid per unit',type:'number',hint:'Optional; shows your gain or loss'},{k:'price',label:'Current price per unit',type:'number',req:true,hint:'Update now and then from your broker app'},{k:'currency',label:'Currency',ph:'SGD',hint:'e.g. USD for US stocks'});
+      else if(v.type==='ssb') f.push({k:'amount',label:'Amount invested (S$)',type:'number',req:true},{k:'issueDate',label:'Issue date',type:'date',req:true,hint:'First day of the month you got it, e.g. 1 Oct 2024'},{k:'rates',label:'Interest rates by year (%)',full:true,req:true,ph:'e.g. 2.80, 2.85, 2.90, 2.95, 3.00, 3.00, 3.05, 3.05, 3.10, 3.10',hint:'All 10 yearly rates, from the MAS SSB page for your issue code. Only know the average? Enter that one number.'});
+      else if(v.type==='bond') f.push({k:'face',label:'Face value (S$)',type:'number',req:true,hint:'The amount you get back at the end'},{k:'coupon',label:'Coupon rate (% per year)',type:'number',req:true},{k:'freq',label:'Interest paid',type:'select',options:[['2','Twice a year'],['1','Once a year'],['4','Quarterly']]},{k:'buyDate',label:'Date you bought it',type:'date',req:true},{k:'maturity',label:'Maturity date',type:'date',req:true},{k:'cost',label:'Total you paid (S$, optional)',type:'number',hint:'For your real yearly return'},{k:'price',label:'Market price per S$100 (optional)',type:'number',hint:'Blank = valued at face value'});
+      else if(v.type==='tbill') f.push({k:'face',label:'Face value (S$)',type:'number',req:true},{k:'cost',label:'Amount you paid (S$)',type:'number',req:true},{k:'buyDate',label:'Issue date',type:'date',req:true},{k:'maturity',label:'Maturity date',type:'date',req:true});
+      else if(v.type==='fd') f.push({k:'principal',label:'Amount deposited (S$)',type:'number',req:true},{k:'rate',label:'Interest rate (% per year)',type:'number',req:true},{k:'start',label:'Start date',type:'date',req:true},{k:'maturity',label:'Maturity date',type:'date',req:true});
+      else f.push({k:'value',label:'Current value (S$)',type:'number',req:true});
+      f.push({k:'note',label:'Note (optional)',full:true}); return f;
+    },
+    onSave: v=>{ if(!v.name) return 'Give it a name.';
+      if(v.type==='stock' && (!a || a.price!==v.price)) v.priceDate=todayStr();
+      upsert(S.assets,v); },
+    onDelete: isNew?null:()=>{ S.assets=S.assets.filter(x=>x.id!==a.id); }
+  });
+}
+function renderAssets(){
+  const T = todayStr(), horizon = addMonthsDate(T,12);
+  const rows = S.assets.map(a=>[a,assetCalc(a)]);
+  const total = rows.reduce((s,[,c])=>s+c.value,0);
+  const owe = S.features.loans ? S.loans.reduce((s,l)=>s+loanPlan(l).bal,0) : 0;
+  const upcoming = rows.flatMap(([,c])=>c.pays.filter(p=>p.date>T && p.date<=horizon)).sort((x,y)=>x.date.localeCompare(y.date));
+  const interest12 = upcoming.filter(p=>!p.principal).reduce((s,p)=>s+p.amt,0);
+  $('#assetSummary').innerHTML = `<div class="kpis">${[
+    ['Net worth', fmt(total-owe), S.features.loans&&owe?'Assets minus loans':'Total of your holdings'],
+    ['Assets', fmt(total), `${S.assets.length} holding${S.assets.length===1?'':'s'}`],
+    ['Loans', fmt(owe), S.features.loans?'From the Loans tab':'Turn on Loans in Settings'],
+    ['Interest next 12 months', fmt(interest12), 'From bonds, T-bills and deposits'],
+  ].map(([l,v,d])=>`<div class="kpi"><div class="eyebrow">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')}</div>`;
+  if(!S.assets.length){ $('#assetList').innerHTML = `<div class="panel empty">Nothing recorded yet. Add your stocks, bonds, savings or CPF to see your net worth and upcoming interest.</div>`; $('#assetSide').innerHTML=bondHelp(); return; }
+  const byType = {}; rows.forEach(([a,c])=>byType[a.type]=(byType[a.type]||0)+c.value);
+  const max = Math.max(...Object.values(byType),1);
+  $('#assetList').innerHTML = ATYPES.filter(([t])=>rows.some(([a])=>a.type===t)).map(([t,label])=>`<div class="panel"><div class="panel-h"><h2>${esc(label)}</h2><span class="num">${fmt(byType[t])}</span></div>${
+    rows.filter(([a])=>a.type===t).map(([a,c])=>{
+      const gain = (a.type==='stock'||a.type==='bond') && c.cost!=null && c.value ? c.value-c.cost : null;
+      const facts = [];
+      if(c.interestTotal!=null){
+        facts.push(fact('Interest received', fmt(c.received)));
+        if(c.next) facts.push(fact(c.next.principal?'Money back':'Next payment', fmt(c.next.amt), fmtDate(c.next.date)));
+        facts.push(fact('Total interest', fmt(c.interestTotal), c.maturity?`If held to ${fmtDate(c.maturity)}`:''));
+        if(c.yearly!=null) facts.push(fact('Return per year', c.yearly.toFixed(2)+'%', a.type==='ssb'?'Average over 10 years':''));
+      }
+      return `<button class="holding" type="button" data-aedit="${a.id}"><span class="h-top"><span class="h-name">${esc(a.name)}</span><span class="num">${fmt(c.value)}</span></span>
+        <span class="muted" style="font-size:.82rem">${c.lines.map(esc).join(' · ')}${gain!=null?` <span class="${gain>=0?'down':'up'}">${gain>=0?'▲':'▼'} ${fmt(Math.abs(gain))} (${(gain/c.cost*100).toFixed(1)}%)</span>`:''}${c.maturity && T>=c.maturity?' <span class="chip">Matured</span>':''}</span>
+        ${facts.length?`<span class="facts">${facts.join('')}</span>`:''}</button>`;
+    }).join('')}</div>`).join('');
+  $('#assetSide').innerHTML = `<div class="panel"><div class="panel-h"><h2>Mix</h2></div><div class="cats">${Object.entries(byType).sort((x,y)=>y[1]-x[1]).map(([t,v])=>`<div class="cat" style="cursor:default"><span class="n">${esc(atypeName(t))}<span class="pct">${total?(v/total*100).toFixed(0):0}%</span></span><span class="a">${fmt(v,0)}</span><span class="track"><span class="fill" style="display:block;width:${v/max*100}%"></span></span></div>`).join('')}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Coming in, next 12 months</h2></div><ul class="list">${upcoming.length?upcoming.map(p=>`<li><span class="l">${fmtDate(p.date)} · ${esc(p.name)} <span class="muted" style="font-size:.8rem">${p.principal?'money back':'interest'}</span></span><span class="num">${fmt(p.amt)}</span></li>`).join(''):'<li class="muted">No payments due.</li>'}</ul></div>` + bondHelp();
+}
+function bondHelp(){
+  return `<div class="panel"><div class="panel-h"><h2>Which bond do I have?</h2></div><div style="font-size:.88rem;display:flex;flex-direction:column;gap:8px">
+    <p style="margin:0"><b>Singapore Savings Bond (SSB)</b>: bought from a bank app or ATM from S$500. Lasts up to 10 years, pays interest every 6 months, and the rate goes up each year. You can cash out in any month and get your full amount back. The issue code starts with <b>GX</b>.</p>
+    <p style="margin:0"><b>SGS bond</b> (Singapore Government Securities): one fixed rate for its whole life, paid twice a year, often 10 years. Bought through a bank, CDP or a broker; its price can move if you sell before maturity.</p>
+    <p style="margin:0" class="muted">Your bank app's investment section or your CDP statement shows the name, code, amount and dates. For an SSB, the MAS website lists the 10 yearly rates for each issue code.</p></div></div>`;
+}
 
 /* ================= sample data (clearly flagged) ================= */
 function sampleTxns(){
