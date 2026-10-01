@@ -4,17 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pocket Ledger</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<meta name="theme-color" content="#0d7560">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
 /* Layout: sticky top bar with tabs, a 1100px working column, summary tiles first, then charts and detail. */
 :root{
   --bg:#f3f5f3; --surface:#ffffff; --surface-2:#eaefec; --ink:#14201c; --ink-2:#47554f; --muted:#6f7d77;
   --line:#dbe2de; --accent:#0d7560; --accent-ink:#ffffff; --accent-soft:#cfe8df; --bar-rest:#9fcfbf;
   --pos:#167a43; --neg:#b4352f; --warn:#a86b00; --warn-soft:#fbecc8; --crit-soft:#f8d9d6;
-  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
-  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* System fonts only: the app makes no network requests once installed. */
+  --display:"Avenir Next", "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", Roboto, system-ui, sans-serif;
+  --body:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono:ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
   --r:10px;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
@@ -86,6 +92,22 @@ select,.field{border:1px solid var(--line);background:var(--surface);border-radi
 .chart .hit:hover + .bar, .chart .bar.hov{fill:var(--accent);opacity:.8}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:.8rem;white-space:nowrap;transform:translate(-50%,-110%);z-index:5}
 .tip b{font-family:var(--mono)}
+
+/* month coverage */
+.cov{margin-top:18px;overflow-x:auto}
+.cov h3{font-family:var(--body);font-size:.85rem;font-weight:600;margin-bottom:6px}
+.cov table{min-width:0;width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed}
+.cov th,.cov td{border:0;padding:0;text-align:center;font-size:.72rem;position:static}
+.cov th{font-family:var(--mono);color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400;background:none}
+.cov th.acct{text-align:left;font-family:var(--body);color:var(--ink-2);width:84px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cov td{height:22px;border-radius:4px;font-family:var(--mono);cursor:default}
+.cov td.has{background:var(--accent-soft);color:var(--ink)}
+.cov td.gap{background:var(--warn-soft);color:var(--warn);font-weight:600}
+.cov td.out{background:transparent;color:var(--line)}
+.cov td.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.cov .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--muted);margin-top:6px}
+.cov .sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+tr.paired td.desc small.pair{color:var(--accent)}
 
 /* category bars */
 .cats{display:flex;flex-direction:column;gap:9px}
@@ -209,6 +231,7 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
       <div class="panel">
         <div class="panel-h"><h2>Spending by month</h2><span class="muted" style="font-size:.8rem">Click a bar to open that month</span></div>
         <div class="chart" id="monthChart"></div>
+        <div class="cov" id="coverage"></div>
       </div>
       <div class="panel">
         <div class="panel-h"><h2>Where it went</h2><span class="muted" style="font-size:.8rem" id="catHint"></span></div>
@@ -311,6 +334,7 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
             <li><strong>DBS/POSB account (CSV):</strong> digibank online → My Accounts → pick the account → Transaction History → choose the period → Download.</li>
             <li><strong>DBS card (CSV):</strong> digibank online → Cards → pick the card → Statements / Transaction History → Download.</li>
             <li><strong>DBS e-Statement (PDF):</strong> digibank → e-Statements → download the PDF. PDF reading is best-effort; check the preview before importing.</li>
+            <li><strong>Top-ups from DBS to YouTrip</strong> are matched automatically (same amount, within 4 days) and counted as neither spending nor income. Matched rows show "⇄ Own transfer" in Transactions.</li>
             <li><strong>YouTrip:</strong> YouTrip app → Me → Statement → pick months → export (CSV if offered, otherwise PDF), then send it to this device.</li>
           </ul>
         </div>
@@ -350,11 +374,11 @@ dialog::backdrop{background:rgba(5,12,10,.55)}
 <div class="drop" id="drop" hidden>Drop statements to import</div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script>
 "use strict";
 /* ================= constants ================= */
 const KEY = 'pocket-ledger-v1';
+const LIB = 'vendor/'; // Excel and PDF readers, shipped with the app
 const DEFAULT_CATS = [
   ['Food & Drink','spend'],['Groceries','spend'],['Transport','spend'],['Shopping','spend'],
   ['Bills & Utilities','spend'],['Subscriptions','spend'],['Entertainment','spend'],['Travel','spend'],
@@ -364,7 +388,7 @@ const DEFAULT_CATS = [
 
 // Built-in rules, checked in order (first match wins). Keywords match whole words, case-insensitive.
 const BUILTIN = [
-  ['Transfers',['YOUTRIP','TOP UP','TOP-UP','TOPUP','EXCHANGE','CONVERSION','CONVERTED','THANK YOU','PAYMENT RECEIVED','OWN ACCOUNT','DBS CARD','CARD PAYMENT','BILL PAYMENT DBS']],
+  ['Transfers',['YOUTRIP','TOP UP','TOP-UP','TOPUP','TOPPED UP','ADD MONEY','ADDED MONEY','WALLET RELOAD','EXCHANGE','CONVERSION','CONVERTED','THANK YOU','PAYMENT RECEIVED','OWN ACCOUNT','DBS CARD','CARD PAYMENT','BILL PAYMENT DBS']],
   ['Income',['SALARY','SALA','PAYROLL','INTEREST EARNED','INTEREST CREDIT','INTEREST','CASHBACK','CASH REBATE','DIVIDEND','GST VOUCHER','CPF REFUND']],
   ['Investments',['SYFE','ENDOWUS','STASHAWAY','MOOMOO','TIGER BROKERS','IBKR','INTERACTIVE BROKERS','DBS VICKERS','CDP','SRS','SSB']],
   ['Insurance',['NTUC INCOME','INCOME INSURANCE','PRUDENTIAL','GREAT EASTERN','AIA','AVIVA','SINGLIFE','FWD','MANULIFE','INSURANCE']],
@@ -422,13 +446,40 @@ function compiledRules(){
   BUILTIN.forEach(([cat,kws])=>kws.forEach(kw=>list.push({re:kwRegex(kw),cat})));
   return ruleCache = list;
 }
-function categorise(desc, amount){
+function categorise(desc, amount, account){
   const d = ' '+String(desc).toUpperCase()+' ';
   for(const r of compiledRules()) if(r.re.test(d) && S.cats.some(c=>c.name===r.cat)) {
     if(r.cat==='Income' && amount<0) continue;
     return r.cat;
   }
+  // Money arriving in YouTrip without a merchant name is almost always a top-up, never salary.
+  if(amount>0 && /youtrip/i.test(account||'')) return 'Transfers';
   return amount>0 ? 'Income' : 'Other';
+}
+
+// Pair up money leaving one of your accounts with the same amount arriving in
+// another within 4 days (e.g. DBS -> YouTrip top-up) and mark both as transfers,
+// so they count as neither spending nor income.
+function matchTransfers(){
+  const days = d=>Date.parse(d)/864e5;
+  const looksLikeTransfer = t=>/TRANSFER|TOP.?UP|YOUTRIP|FAST|PAYNOW|GIRO|OWN|FUND|WALLET|IBG|ICT/i.test(t.desc) || /youtrip/i.test(t.account);
+  const byId = new Map(S.txns.map(t=>[t.id,t]));
+  S.txns.forEach(t=>{ if(t.pair && !byId.has(t.pair)) delete t.pair; });
+  const outs = S.txns.filter(t=>t.amount<0 && !t.pair && !t.manual && (t.currency||'SGD')==='SGD');
+  const ins = S.txns.filter(t=>t.amount>0 && !t.pair && !t.manual && (t.currency||'SGD')==='SGD');
+  let n = 0;
+  for(const o of outs){
+    let best=null, bd=99;
+    for(const i of ins){
+      if(i.pair || i.account===o.account || Math.abs(i.amount + o.amount) > 0.005) continue;
+      if(/SALARY|PAYROLL|\bSALA\b/i.test(i.desc)) continue;
+      const d = Math.abs(days(i.date)-days(o.date)); if(d>4 || d>=bd) continue;
+      if(!(looksLikeTransfer(o) || looksLikeTransfer(i))) continue;
+      best=i; bd=d;
+    }
+    if(best){ o.pair=best.id; best.pair=o.id; o.category='Transfers'; best.category='Transfers'; n++; }
+  }
+  return n;
 }
 // A readable merchant name from a raw bank description.
 function merchant(desc){
@@ -559,7 +610,7 @@ async function next(){
     else {
       let rows;
       if(ext==='xls'||ext==='xlsx'){
-        if(!window.XLSX) throw new Error('The Excel reader did not load. Check your connection, or save the file as CSV and import that.');
+        if(!window.XLSX) await loadScript(LIB+'xlsx.full.min.js','The Excel reader could not be loaded. Save the file as CSV and import that.');
         const wb = XLSX.read(await f.arrayBuffer(),{type:'array'});
         rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''}).map(r=>r.map(x=>String(x).trim()));
       } else rows = parseCSV(await f.text());
@@ -655,24 +706,25 @@ function commit(list, fname){
   for(const t of list){
     const k = dupKey(t); const n=(seen.get(k)||0)+1; seen.set(k,n);
     if((have.get(k)||0) >= n){ dup++; continue; }
-    S.txns.push({id:uid(),...t,category:categorise(t.desc,t.amount),note:'',manual:false,src:fname});
+    S.txns.push({id:uid(),...t,category:categorise(t.desc,t.amount,t.account),note:'',manual:false,src:fname});
     added++;
   }
+  const paired = matchTransfers();
   save();
   const months = list.map(t=>t.date.slice(0,7)).sort();
   if(months.length) ui.period = months[months.length-1];
   render();
-  toast(`${fname}: added ${added} transaction${added===1?'':'s'}${dup?`, skipped ${dup} already imported`:''}.`);
+  toast(`${fname}: added ${added} transaction${added===1?'':'s'}${dup?`, skipped ${dup} already imported`:''}${paired?`. Matched ${paired} transfer${paired===1?'':'s'} between your accounts`:''}.`);
 }
 
 /* ---------- PDF (best effort) ---------- */
-function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Could not load the PDF reader. Check your connection.')); document.head.appendChild(s); }); }
+function loadScript(src,msg){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error(msg||'Could not load '+src)); document.head.appendChild(s); }); }
 async function loadPdfJs(){
   if(window.pdfjsLib) return;
-  const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
-  await loadScript(base+'pdf.min.js');
-  await loadScript(base+'pdf.worker.min.js'); // runs in-page; avoids a cross-origin worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = base+'pdf.worker.min.js';
+  const msg='The PDF reader could not be loaded. Use the CSV download instead.';
+  await loadScript(LIB+'pdf.min.js',msg);
+  await loadScript(LIB+'pdf.worker.min.js',msg); // runs in-page, no separate worker needed
+  pdfjsLib.GlobalWorkerOptions.workerSrc = LIB+'pdf.worker.min.js';
 }
 async function pdfLines(file){
   await loadPdfJs();
@@ -776,13 +828,14 @@ function inScope(t, period, acct){
   return t.date.startsWith(period);
 }
 function totals(list){
-  let spend=0, income=0; const byCat={}, byMer={};
+  let spend=0, income=0, moved=0; const byCat={}, byMer={};
   for(const t of list){
     const k = kindOf(t.category), v = sgd(t);
     if(k==='spend'){ spend -= v; byCat[t.category]=(byCat[t.category]||0)-v; const m=merchant(t.desc); byMer[m]=byMer[m]||{v:0,n:0}; byMer[m].v-=v; byMer[m].n++; }
     else if(k==='income') income += v;
+    else if(t.category==='Transfers' && v>0) moved += v;
   }
-  return {spend,income,byCat,byMer};
+  return {spend,income,moved,byCat,byMer};
 }
 
 /* ================= render ================= */
@@ -828,7 +881,7 @@ function renderOverview(){
   const net = T.income - T.spend;
   $('#kpis').innerHTML = [
     ['Spent', fmt(T.spend), delta || `${list.filter(t=>kindOf(t.category)==='spend').length} transactions`],
-    ['Income', fmt(T.income), 'Salary, interest, refunds'],
+    ['Income', fmt(T.income), T.moved>0.005 ? `Excludes ${fmt(T.moved,0)} moved between your accounts` : 'Salary, interest, refunds'],
     ['Saved', fmt(net), T.income>0 ? `${(net/T.income*100).toFixed(0)}% of income` : 'No income recorded'],
     ['Per day', fmt(perDay), daysLabel]
   ].map(([l,v,d])=>`<div class="kpi"><div class="eyebrow">${l}</div><div class="v" title="${v}">${v}</div><div class="d">${d}</div></div>`).join('');
@@ -873,6 +926,7 @@ function drawMonthChart(){
   const bw = (W-L-R)/keys.length;
   let g='';
   for(let v=0; v<=top+1e-6; v+=step) g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${fmtShort(v)}</text>`;
+  drawCoverage(keys);
   keys.forEach((k,i)=>{
     const x = L+i*bw, w=Math.max(4,bw*0.62), cx=x+bw/2, v=Math.max(0,vals[i]), h=y(0)-y(v);
     const r = Math.min(4,h,w/2), x0=cx-w/2, y0=y(v);
@@ -892,6 +946,27 @@ function drawMonthChart(){
     h.addEventListener('click',()=>{ if(months().includes(keys[i])){ ui.period=keys[i]; render(); } });
   });
 }
+// Which accounts have transactions in which months. A gap inside an account's
+// own date range usually means a statement hasn't been imported yet.
+function drawCoverage(keys){
+  const accts = accounts(); const box = $('#coverage');
+  if(!accts.length){ box.innerHTML=''; return; }
+  const cnt = {}, span = {};
+  for(const t of S.txns){ const m=t.date.slice(0,7); (cnt[t.account]=cnt[t.account]||{})[m]=(cnt[t.account][m]||0)+1;
+    const sp = span[t.account]=span[t.account]||[m,m]; if(m<sp[0]) sp[0]=m; if(m>sp[1]) sp[1]=m; }
+  const narrow = box.clientWidth && box.clientWidth<460;
+  const ks = narrow ? keys.slice(-6) : keys;
+  let gaps = 0;
+  const rows = accts.map(a=>`<tr><th class="acct" title="${esc(a)}">${esc(a)}</th>${ks.map(k=>{
+    const n = cnt[a][k]||0, inSpan = k>=span[a][0] && k<=span[a][1];
+    const cls = n ? 'has' : inSpan ? 'gap' : 'out'; if(cls==='gap') gaps++;
+    const tip = n ? `${a}, ${monthLabel(k)}: ${n} transactions` : inSpan ? `${a}, ${monthLabel(k)}: nothing imported` : `${a}: no data this far ${k<span[a][0]?'back':'forward'}`;
+    return `<td class="${cls} ${k===ui.period?'sel':''}" title="${esc(tip)}">${n||(cls==='gap'?'!':'·')}</td>`;
+  }).join('')}</tr>`).join('');
+  box.innerHTML = `<h3>Statements imported${gaps?` <span class="chip warn">! ${gaps} missing month${gaps===1?'':'s'}</span>`:''}</h3>
+    <table aria-label="Transactions per account per month"><thead><tr><th class="acct"></th>${ks.map(k=>`<th>${monthLabel(k,true)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
+    <div class="legend"><span><span class="sw" style="background:var(--accent-soft)"></span>Imported (number of transactions)</span><span><span class="sw" style="background:var(--warn-soft)"></span>! Missing, totals may be low</span></div>`;
+}
 function niceStep(x){ const p=Math.pow(10,Math.floor(Math.log10(x||1))); const f=x/p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p; }
 
 function filteredTxns(){
@@ -909,7 +984,9 @@ function renderTxns(){
   $('#txnBody').innerHTML = list.length ? list.slice(0,ui.limit).map(t=>{
     const v = sgd(t), k = kindOf(t.category);
     const foreign = t.currency && t.currency!=='SGD' ? `<small>${t.amount.toLocaleString('en-SG',{minimumFractionDigits:2})} ${esc(t.currency)}</small>` : '';
-    return `<tr data-id="${t.id}"><td class="num" style="white-space:nowrap">${t.date}</td><td class="desc">${esc(t.desc)}${t.note?`<small>${esc(t.note)}</small>`:''}</td><td>${esc(t.account)}</td><td><span class="pill ${k==='excluded'?'x':''}">${esc(t.category)}</span></td><td class="amt ${v>0?'in':''}">${v>0?'+':'−'}${Math.abs(v).toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2})}${foreign}</td></tr>`;
+    const pr = t.pair && S.txns.find(x=>x.id===t.pair);
+    const pairNote = pr ? `<small class="pair">⇄ Own transfer ${t.amount<0?'to':'from'} ${esc(pr.account)} on ${pr.date}, not counted</small>` : '';
+    return `<tr data-id="${t.id}" class="${pr?'paired':''}"><td class="num" style="white-space:nowrap">${t.date}</td><td class="desc">${esc(t.desc)}${pairNote}${t.note?`<small>${esc(t.note)}</small>`:''}</td><td>${esc(t.account)}</td><td><span class="pill ${k==='excluded'?'x':''}">${esc(t.category)}</span></td><td class="amt ${v>0?'in':''}">${v>0?'+':'−'}${Math.abs(v).toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2})}${foreign}</td></tr>`;
   }).join('') : `<tr><td colspan="5" class="empty">No transactions match.</td></tr>`;
   const sum = list.reduce((a,t)=>a+sgd(t),0);
   $('#txnCount').textContent = `${list.length.toLocaleString()} transaction${list.length===1?'':'s'}${list.length>ui.limit?`, showing ${ui.limit}`:''}`;
@@ -960,6 +1037,7 @@ $('#txnForm').addEventListener('submit',e=>{
     if(S.sample){ S.sample=false; S.txns=S.txns.filter(x=>!x.sampleRow); }
   } else {
     const changed = t.category!==cat; t.category=cat; t.note=$('#tdNote').value.trim(); if(changed) t.manual=true;
+    if(changed && t.pair){ const o=S.txns.find(x=>x.id===t.pair); if(o){ delete o.pair; o.manual=true; } delete t.pair; }
     if($('#tdRule').checked && $('#tdKw').value.trim()){
       const kw=$('#tdKw').value.trim(); S.rules.unshift({kw,cat}); ruleCache=null;
       const re = kwRegex(kw); let n=0;
@@ -971,7 +1049,7 @@ $('#txnForm').addEventListener('submit',e=>{
 });
 $('#tdCancel').onclick=()=>$('#txnDlg').close();
 $('#tdDel').onclick=()=>{ $('#tdDelConfirm').hidden=false; };
-$('#tdDelYes').onclick=()=>{ S.txns=S.txns.filter(x=>x.id!==editing.id); save(); $('#txnDlg').close(); render(); toast('Transaction deleted.'); };
+$('#tdDelYes').onclick=()=>{ S.txns=S.txns.filter(x=>x.id!==editing.id); S.txns.forEach(x=>{ if(x.pair===editing.id) delete x.pair; }); save(); $('#txnDlg').close(); render(); toast('Transaction deleted.'); };
 
 /* ================= events ================= */
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ ui.tab=b.dataset.tab; render(); });
@@ -999,7 +1077,7 @@ $('#ruleForm').onsubmit=e=>{ e.preventDefault(); const kw=$('#ruleKw').value.tri
   S.txns.forEach(t=>{ if(!t.manual && re.test(' '+t.desc.toUpperCase()+' ') && t.category!==cat){ t.category=cat; n++; } });
   save(); $('#ruleKw').value=''; renderSettings(); toast(`Rule added. ${n} transaction${n===1?'':'s'} moved to ${cat}.`); };
 $('#ruleList').onclick=e=>{ const i=e.target.dataset.delrule; if(i==null) return; S.rules.splice(+i,1); ruleCache=null; save(); renderSettings(); };
-$('#reapply').onclick=()=>{ ruleCache=null; let n=0; S.txns.forEach(t=>{ if(t.manual) return; const c=categorise(t.desc,t.amount); if(c!==t.category){t.category=c;n++;} }); save(); renderSettings(); toast(`${n} transaction${n===1?'':'s'} re-categorised.`); };
+$('#reapply').onclick=()=>{ ruleCache=null; let n=0; S.txns.forEach(t=>{ if(t.manual) return; if(t.pair) return; const c=categorise(t.desc,t.amount,t.account); if(c!==t.category){t.category=c;n++;} }); n+=matchTransfers(); save(); renderSettings(); toast(`${n} transaction${n===1?'':'s'} re-categorised.`); };
 $('#catEdit').onchange=e=>{ const i=e.target.dataset.kind; if(i==null) return; S.cats[+i].kind=e.target.value; save(); };
 $('#catEdit').onclick=e=>{ const i=e.target.dataset.delcat; if(i==null) return; const name=S.cats[+i].name;
   S.cats.splice(+i,1); S.txns.forEach(t=>{ if(t.category===name){ t.category='Other'; } }); S.rules=S.rules.filter(r=>r.cat!==name); delete S.budgets[name]; ruleCache=null; save(); renderSettings(); toast(`${name} removed; its transactions moved to Other.`); };
@@ -1051,7 +1129,7 @@ function sampleTxns(){
     if(dim>=3) out.push(['SINGTEL GOMO MOBILE PLAN',-10,day(3),'DBS Card'],['NETFLIX.COM',-19.98,day(4),'DBS Card'],['SPOTIFY P1A2B3',-11.98,day(9),'DBS Card']);
     if(dim>=12) out.push(['SP DIGITAL PTE LTD UTILITIES',-(78+rnd()*40),day(12),'DBS']);
     if(dim>=15) out.push(['AIA SINGAPORE PREMIUM',-142,day(15),'DBS']);
-    if(dim>=2) out.push(['PAYMENT - DBS INTERNET/WIRELESS DBS CARD',-(800+rnd()*300),day(2),'DBS'],['PAYMT THANK YOU',800+rnd()*300,day(3),'DBS Card']);
+    if(dim>=3){ const bill=+(800+rnd()*300).toFixed(2); out.push(['PAYMENT - DBS INTERNET/WIRELESS DBS CARD',-bill,day(2),'DBS'],['PAYMT THANK YOU',bill,day(3),'DBS Card']); }
     for(const [desc,lo,hi,acct,n] of spots){ const cnt=Math.round(n*(0.7+rnd()*0.6)*dim/30);
       for(let i=0;i<cnt;i++) out.push([desc,+(lo+(hi-lo)*rnd()).toFixed(2),day(1+Math.floor(rnd()*dim)),acct]); }
     if(mo===2){ out.push(['YOUTRIP TOP UP FAST',-900,day(6),'DBS'],['Top Up',900,day(6),'YouTrip'],['Exchange SGD to JPY',-900,day(6),'YouTrip'],['Exchange SGD to JPY',101000,day(6),'YouTrip','JPY'],
@@ -1063,12 +1141,19 @@ function sampleTxns(){
   return out.map(([desc,amount,date,account,cur])=>{
     const t={id:uid(),date,desc,amount:+(+amount).toFixed(2),currency:cur||'SGD',sgd:null,account,note:'',manual:false,src:'sample',sampleRow:true};
     if(cur==='JPY' && desc.startsWith('Exchange')){ t.category='Transfers'; return t; }
-    t.category = categorise(desc,t.amount); return t;
+    t.category = categorise(desc,t.amount,account); return t;
   });
 }
 
-if(S.sample && !S.txns.length){ S.txns = sampleTxns(); const ms=months(); ui.period = ms[ms.length-2] || ms[ms.length-1]; }
+if(S.sample && !S.txns.length){ S.txns = sampleTxns(); matchTransfers(); const ms=months(); ui.period = ms[ms.length-2] || ms[ms.length-1]; }
 render();
+
+// Installable + offline: cache the app on first visit (needs https, e.g. GitHub Pages).
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+// Ask the browser not to clear this app's storage when space runs low.
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 </script>
 </body>
 </html>
