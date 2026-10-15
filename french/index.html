@@ -1,0 +1,860 @@
+<title>Cahier de français</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Phone-first French practice for Inspire 1, Unités 1–2.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,500&display=swap">
+<style>
+/* Layout: a French school exercise book. One column, Seyès-ruled header band,
+   red margin rule on question cards, ink-blue for the learner's tools, bottom tab bar. */
+:root{
+  --paper:#fbfcff; --card:#ffffff; --chip:#eef1fb; --line:#dfe3f3; --line-strong:#c3c9e6;
+  --ink:#1a1f3d; --muted:#596084; --accent:#2340c8; --accent-ink:#ffffff; --accent-soft:#e3e8ff;
+  --margin:#d6455d; --ok:#17794f; --ok-soft:#e1f4ea; --bad:#b8322a; --bad-soft:#fbe7e4;
+  --masc:#2456d3; --masc-soft:#e4ecff; --fem:#b52f72; --fem-soft:#fbe4f0; --plural:#6b5a12; --plural-soft:#f6f0d6;
+  --guide:#4a3fb0; --shadow:0 1px 2px rgba(26,31,61,.06),0 4px 14px rgba(26,31,61,.06);
+  --f-fr:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-ui:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:14px; --tap:44px; --nav-h:62px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0f1226; --card:#171b36; --chip:#212650; --line:#262b52; --line-strong:#353b6b;
+  --ink:#e8eaf7; --muted:#a2a8cb; --accent:#93a6ff; --accent-ink:#0f1226; --accent-soft:#252c5e;
+  --margin:#ff7d90; --ok:#55cf96; --ok-soft:#173a2c; --bad:#ff8577; --bad-soft:#43201d;
+  --masc:#8eaaff; --masc-soft:#1f2b5c; --fem:#ff8fc4; --fem-soft:#4a1d36; --plural:#e6cf6e; --plural-soft:#3b3416;
+  --guide:#c1b8ff; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#0f1226; --card:#171b36; --chip:#212650; --line:#262b52; --line-strong:#353b6b;
+  --ink:#e8eaf7; --muted:#a2a8cb; --accent:#93a6ff; --accent-ink:#0f1226; --accent-soft:#252c5e;
+  --margin:#ff7d90; --ok:#55cf96; --ok-soft:#173a2c; --bad:#ff8577; --bad-soft:#43201d;
+  --masc:#8eaaff; --masc-soft:#1f2b5c; --fem:#ff8fc4; --fem-soft:#4a1d36; --plural:#e6cf6e; --plural-soft:#3b3416;
+  --guide:#c1b8ff; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.45;margin:0;overflow-x:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.2}
+h2{font-family:var(--f-fr);font-weight:600;font-size:1.55rem}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+.label{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+/* Header */
+.top{position:sticky;top:0;z-index:20;background:var(--paper);
+  background-image:repeating-linear-gradient(to bottom,transparent 0 7px,var(--line) 7px 8px);
+  border-bottom:1px solid var(--line-strong);
+  padding-top:env(safe-area-inset-top,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{display:flex;align-items:center;gap:8px;min-height:56px;max-width:640px;margin:0 auto}
+.brand{font-family:var(--f-fr);font-style:italic;font-weight:600;font-size:1.3rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand span{color:var(--margin)}
+@media (max-width:420px){.brand span{display:none}.tog{padding:0 12px}}
+.tog{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);padding:0 10px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--card);font-size:.85rem;font-weight:700}
+.tog[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.icon-btn{width:var(--tap);height:var(--tap);display:inline-grid;place-items:center;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--card)}
+.icon-btn svg{width:20px;height:20px}
+
+/* Main */
+main{max-width:640px;margin:0 auto;padding-block:16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.view{display:flex;flex-direction:column;gap:16px}
+.view-head{display:flex;flex-direction:column;gap:4px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.margin{border-left:3px solid var(--margin)}
+.note{background:var(--chip);border-radius:12px;padding:12px 14px;font-size:.92rem}
+.warn{background:var(--bad-soft);color:var(--ink);border-radius:12px;padding:12px 14px;font-size:.92rem}
+
+/* Segmented sub-tabs and chips */
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button,.chip{flex:0 0 auto;min-height:var(--tap);padding:0 14px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--card);font-weight:700;font-size:.9rem;white-space:nowrap}
+.seg button[aria-selected="true"],.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Buttons and inputs */
+.btn{min-height:var(--tap);padding:0 18px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--card);font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:var(--paper)}
+.btn.bad{background:var(--card);border-color:var(--bad);color:var(--bad)}
+.btn.wide{flex:1 1 140px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn svg{width:18px;height:18px}
+input[type=text],input[type=number],input:not([type]),select,textarea{min-height:var(--tap);width:100%;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--card);padding:8px 12px;font-size:1rem}
+textarea{min-height:96px;resize:vertical}
+.answer{font-size:1.5rem;font-variant-numeric:tabular-nums;letter-spacing:.04em;text-align:center}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-weight:700;font-size:.9rem}
+
+/* French item with play button */
+.item{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.item .txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.fr{font-family:var(--f-fr);font-size:1.22rem;font-weight:500;line-height:1.3;overflow-wrap:anywhere}
+.fr.big{font-size:1.7rem}
+.guide{font-style:italic;color:var(--guide);font-size:.98rem;overflow-wrap:anywhere}
+.guide::before{content:"≈ ";opacity:.7;font-style:normal}
+html.noguide .guide{display:none}
+.en{color:var(--muted);font-size:.92rem}
+.play{flex:0 0 auto;width:var(--tap);height:var(--tap);border-radius:999px;border:0;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.play svg{width:20px;height:20px}
+.play.big{width:72px;height:72px}
+.play.big svg{width:32px;height:32px}
+.play.playing{background:var(--accent);color:var(--accent-ink)}
+.list{display:flex;flex-direction:column}
+.list>.item{padding:12px 0;border-bottom:1px solid var(--line)}
+.list>.item:last-child{border-bottom:0}
+
+/* Quiz */
+.q-prompt{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:8px 0}
+.digits{font-size:2.4rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.opts{display:grid;grid-template-columns:1fr;gap:8px}
+.opt{min-height:var(--tap);text-align:left;padding:10px 14px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--card);display:flex;flex-direction:column;gap:2px}
+.opt .fr{font-size:1.08rem}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.fb.ok{background:var(--ok-soft)}
+.fb.bad{background:var(--bad-soft)}
+.fb-h{font-weight:700;display:flex;align-items:center;gap:8px}
+.fb.ok .fb-h{color:var(--ok)}
+.fb.bad .fb-h{color:var(--bad)}
+.fb-h svg{width:20px;height:20px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--chip);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.stat b{font-size:1.25rem;font-variant-numeric:tabular-nums}
+.stat span{font-size:.75rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+
+/* Tables (cheat sheets) */
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+.formula{font-family:var(--f-fr);font-size:1.1rem}
+.formula b{color:var(--margin)}
+
+/* Sheet (in-page dialog) */
+.sheet-bg{position:fixed;inset:0;background:rgba(10,12,30,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--paper);width:100%;max-width:640px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;
+  padding-block:18px calc(24px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+.sheet-head{display:flex;align-items:center;gap:8px}
+.sheet-head h2{flex:1}
+
+/* Bottom nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line-strong);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabs-in{display:flex;max-width:640px;margin:0 auto}
+.tabs button{flex:1 1 0;min-width:0;height:var(--nav-h);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.68rem;font-weight:700;color:var(--muted);padding:0 2px}
+.tabs button svg{width:22px;height:22px}
+.tabs button[aria-current="page"]{color:var(--accent)}
+.tabs button[aria-current="page"] svg{stroke-width:2.4}
+.tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+.gender-m{color:var(--masc)} .gender-f{color:var(--fem)} .gender-p{color:var(--plural)}
+.tag{display:inline-flex;align-items:center;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:2px 6px}
+.tag.m{background:var(--masc-soft);color:var(--masc)} .tag.f{background:var(--fem-soft);color:var(--fem)} .tag.p{background:var(--plural-soft);color:var(--plural)}
+.hidden-claude{display:none!important}
+@media (prefers-reduced-motion: no-preference){
+  .btn,.opt,.chip,.play,.tog{transition:background-color .15s,border-color .15s,color .15s}
+  .sheet{animation:up .2s ease-out}
+  @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">Cahier <span>de français</span></div>
+    <button class="tog" id="tog-guide" aria-pressed="true" title="Show the English sound-alike guide">Guide</button>
+    <button class="tog" id="tog-slow" aria-pressed="false" title="Play audio slowly">Slow</button>
+    <button class="icon-btn" id="btn-help" aria-label="How to read the guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6V14"/><path d="M12 17.5h.01"/></svg></button>
+  </div>
+</header>
+
+<main id="main">
+  <div id="voice-note" class="warn" hidden></div>
+  <section class="view" id="v-today" data-view="today" hidden></section>
+  <section class="view" id="v-numbers" data-view="numbers" hidden></section>
+  <section class="view" id="v-sounds" data-view="sounds" hidden></section>
+  <section class="view" id="v-me" data-view="me" hidden></section>
+  <section class="view" id="v-class" data-view="class" hidden></section>
+  <section class="view" id="v-phrases" data-view="phrases" hidden></section>
+  <section class="view" id="v-coach" data-view="coach" hidden></section>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="tabs-in">
+    <button data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 14l2 2 4-4"/></svg><span>Today</span></button>
+    <button data-tab="numbers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg><span>Numbers</span></button>
+    <button data-tab="sounds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 9 5l5 14M5.8 14h6.4"/><path d="M17 9v10M17 9c1.5 0 3 1 3 2.5S18.5 14 17 14"/></svg><span>Sounds</span></button>
+    <button data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span>Moi</span></button>
+    <button data-tab="class"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h11a3 3 0 0 1 3 3v12H7a3 3 0 0 1-3-3z"/><path d="M4 17a3 3 0 0 1 3-3h11"/></svg><span>Class</span></button>
+    <button data-tab="phrases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4z"/></svg><span>Phrases</span></button>
+    <button data-tab="coach" class="hidden-claude" id="tab-coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/></svg><span>Coach</span></button>
+  </div>
+</nav>
+
+<script id="fr-core">
+/* Pure French helpers. Tested in Node by test/numbers.test.js, which reads this block. */
+var FR = (function () {
+  var UNITS = ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
+  var TENS = {20:"vingt",30:"trente",40:"quarante",50:"cinquante",60:"soixante"};
+
+  // final = this group ends the number or is followed by "million(s)", so vingts/cents may keep their -s.
+  function below100(n, final) {
+    if (n < 17) return UNITS[n];
+    if (n < 20) return "dix-" + UNITS[n - 10];
+    if (n < 70) {
+      var t = Math.floor(n / 10) * 10, u = n % 10;
+      return TENS[t] + (u === 0 ? "" : u === 1 ? " et un" : "-" + UNITS[u]);
+    }
+    if (n < 80) return n === 71 ? "soixante et onze" : "soixante-" + below100(n - 60, final);
+    if (n === 80) return final ? "quatre-vingts" : "quatre-vingt";
+    return "quatre-vingt-" + below100(n - 80, final);
+  }
+  function below1000(n, final) {
+    var h = Math.floor(n / 100), r = n % 100, parts = [];
+    if (h === 1) parts.push("cent");
+    else if (h > 1) parts.push(UNITS[h] + " cent" + (r === 0 && final ? "s" : ""));
+    if (r > 0) parts.push(below100(r, final));
+    return parts.join(" ");
+  }
+  function toFrench(n) {
+    n = Number(n);
+    if (!Number.isInteger(n) || n < 0 || n > 999999999) throw new RangeError("Number must be a whole number from 0 to 999 999 999");
+    if (n === 0) return "zéro";
+    var m = Math.floor(n / 1e6), t = Math.floor(n / 1000) % 1000, r = n % 1000, parts = [];
+    if (m) parts.push(below1000(m, true) + " million" + (m > 1 ? "s" : ""));
+    if (t) parts.push(t === 1 ? "mille" : below1000(t, false) + " mille");
+    if (r) parts.push(below1000(r, true));
+    return parts.join(" ");
+  }
+
+  // ---- Sound-alike guide for number words ----
+  // A word is a list of syllables. A syllable starting with "~" is a weak release
+  // ("ruh") that is never the stressed syllable.
+  var DIGIT_WORDS = {un:1,deux:1,trois:1,quatre:1,cinq:1,six:1,sept:1,huit:1,neuf:1};
+  function wordSyl(w, prev, next) {
+    switch (w) {
+      case "zéro": return ["zay","roh"];
+      case "un": return ["uhn"];
+      case "deux": return ["duh"];
+      case "trois": return ["trwah"];
+      case "quatre": return ["kat","~ruh"];
+      case "cinq": return ["sank"];
+      case "six": return [next ? "see" : "sees"];
+      case "sept": return ["set"];
+      case "huit": return [next ? "wee" : "weet"];
+      case "neuf": return ["nuhf"];
+      case "dix": return [next === "huit" || next === "neuf" ? "deez" : next ? "dee" : "dees"];
+      case "onze": return ["onz"];
+      case "douze": return ["dooz"];
+      case "treize": return ["trez"];
+      case "quatorze": return ["ka","torz"];
+      case "quinze": return ["kanz"];
+      case "seize": return ["sez"];
+      case "vingt":
+        if (prev === "quatre") return ["van"];
+        return [next === "et" || DIGIT_WORDS[next] ? "vant" : "van"];
+      case "vingts": return ["van"];
+      case "trente": return ["trahnt"];
+      case "quarante": return ["ka","rahnt"];
+      case "cinquante": return ["san","kahnt"];
+      case "soixante": return ["swa","sahnt"];
+      case "cent": case "cents": return ["sahn"];
+      case "mille": return ["meel"];
+      case "million": case "millions": return ["mee","lyon"];
+      case "et": return ["ay"];
+    }
+    return [w];
+  }
+  function words(fr) { return fr.split(/[\s-]+/).filter(Boolean); }
+  function sylWords(fr) {
+    var ws = words(fr);
+    return ws.map(function (w, i) { return wordSyl(w, ws[i - 1] || null, ws[i + 1] || null); });
+  }
+  // Capitalise the last non-release syllable, then join syllables with "-" and words with " ".
+  function render(sw) {
+    var done = false;
+    for (var i = sw.length - 1; i >= 0 && !done; i--) {
+      for (var j = sw[i].length - 1; j >= 0; j--) {
+        if (sw[i][j].charAt(0) !== "~") { sw[i][j] = sw[i][j].toUpperCase(); done = true; break; }
+      }
+    }
+    return sw.map(function (s) { return s.map(function (x) { return x.replace(/^~/, ""); }).join("-"); }).join(" ");
+  }
+  function guideFor(fr) { return render(sylWords(fr)); }
+  function numberGuide(n) { return guideFor(toFrench(n)); }
+
+  // "J'ai 20 ans": the number links into "ans".
+  var LIAISON = {un:[["uhn"],"n"],deux:[["duh"],"z"],trois:[["trwah"],"z"],quatre:[["ka"],"tr"],cinq:[["san"],"k"],
+    six:[["see"],"z"],sept:[["se"],"t"],huit:[["wee"],"t"],neuf:[["nuh"],"v"],dix:[["dee"],"z"],onze:[["on"],"z"],
+    douze:[["doo"],"z"],treize:[["tre"],"z"],quatorze:[["ka","tor"],"z"],quinze:[["kan"],"z"],seize:[["se"],"z"],
+    vingt:[["van"],"t"],vingts:[["van"],"z"],trente:[["trahn"],"t"],quarante:[["ka","rahn"],"t"],cinquante:[["san","kahn"],"t"],
+    soixante:[["swa","sahn"],"t"],cent:[["sahn"],"t"],cents:[["sahn"],"z"],mille:[["mee"],"l"]};
+  function agePhrase(n) { return toFrench(n) + (n === 1 ? " an" : " ans"); }
+  function ageGuide(n) {
+    var fr = toFrench(n), ws = words(fr), sw = sylWords(fr), last = ws[ws.length - 1], L = LIAISON[last];
+    if (L) sw[sw.length - 1] = L[0].concat([L[1] + "ahn"]);
+    else sw.push(["ahn"]);
+    return render(sw);
+  }
+
+  // Phone numbers, read in pairs. A pair starting with 0 is "zéro" + digit.
+  function pairWords(p) {
+    if (p.length === 2 && p.charAt(0) === "0") return "zéro " + UNITS[+p.charAt(1)];
+    return toFrench(+p);
+  }
+  function splitPairs(digits) {
+    var out = [];
+    for (var i = 0; i < digits.length; i += 2) out.push(digits.slice(i, i + 2));
+    return out;
+  }
+  function phoneFrench(digits) { return splitPairs(digits).map(pairWords); }
+  function phoneGuide(digits) { return phoneFrench(digits).map(guideFor); }
+
+  function formatDigits(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  return { toFrench: toFrench, numberGuide: numberGuide, guideFor: guideFor, agePhrase: agePhrase, ageGuide: ageGuide,
+    phoneFrench: phoneFrench, phoneGuide: phoneGuide, splitPairs: splitPairs, formatDigits: formatDigits, UNITS: UNITS };
+})();
+if (typeof module !== "undefined") module.exports = FR;
+</script>
+<!--DATA-->
+<script id="fr-app">
+"use strict";
+/* ---------- Small utilities ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const today = () => new Date().toISOString().slice(0, 10);
+const ICON = {
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  cross: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg>',
+};
+// What the voice should read for a written form: drop "(e)" endings, ellipses and brackets.
+const sayable = (s) => String(s).replace(/\((e|ne|le|se)\)/g, "").replace(/…/g, "").replace(/[«»]/g, "").replace(/\s+/g, " ").trim();
+
+/* ---------- State: localStorage cache + artifact db when available ---------- */
+const KEY = "cahier-fr-v1";
+const DEFAULT_STATE = () => ({
+  v: 1, updatedAt: 0, tab: "today",
+  settings: { guide: true, slow: false },
+  num: { level: "l0_100", mode: "listen", best: {}, played: {}, right: {} },
+  phone: { best: 0 },
+  alpha: { best: 0, right: 0, played: 0 },
+  profile: { name: "Aiyan", gender: "", nat: "singapourien", city: "Singapour", age: 30, langs: ["anglais", "chinois"], phone: "91234567" },
+  phrases: { learned: {}, open: 1, seen: {} },
+  vocab: { known: {} },
+  daily: {},
+});
+function merge(base, extra) {
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return extra === undefined ? base : extra;
+  const out = Array.isArray(base) ? base.slice() : { ...base };
+  for (const k of Object.keys(extra)) {
+    out[k] = base && typeof base[k] === "object" && base[k] !== null && !Array.isArray(base[k]) ? merge(base[k], extra[k]) : extra[k];
+  }
+  return out;
+}
+function loadLocal() {
+  try { const raw = localStorage.getItem(KEY); if (raw) return merge(DEFAULT_STATE(), JSON.parse(raw)); } catch (e) {}
+  return DEFAULT_STATE();
+}
+let S = loadLocal();
+const Cloud = {
+  ref: null, timer: null, busy: false, again: false,
+  async init() {
+    try {
+      const c = window.claude;
+      if (!c || typeof c.use !== "function") return;
+      const [db, user] = await Promise.all([c.use("db"), c.use("user")]);
+      if (!db || !user || typeof user.id !== "function") return;
+      const id = await user.id();
+      if (!id) return;
+      this.ref = db.collection("data/users/" + id).doc("progress");
+      const snap = await this.ref.get();
+      const remote = snap.exists ? (snap.data() || {}).state : null;
+      if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) {
+        S = merge(DEFAULT_STATE(), remote);
+        saveLocal();
+        App.refreshAll();
+      } else if (!remote || (S.updatedAt || 0) > (remote.updatedAt || 0)) {
+        this.queue();
+      }
+    } catch (e) { this.ref = null; }
+  },
+  queue() { if (!this.ref) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.flush(), 1500); },
+  async flush() {
+    if (!this.ref) return;
+    if (this.busy) { this.again = true; return; }
+    this.busy = true;
+    try { await this.ref.set({ state: JSON.parse(JSON.stringify(S)) }); }
+    catch (e) { if (e && (e.code === "invalid_argument" || e.code === "permission_denied" || e.code === "not_granted")) this.ref = null; }
+    this.busy = false;
+    if (this.again) { this.again = false; this.queue(); }
+  },
+};
+function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { S.updatedAt = Date.now(); saveLocal(); Cloud.queue(); }
+function markDaily(key) { const d = today(); S.daily[d] = S.daily[d] || {}; S.daily[d][key] = (S.daily[d][key] || 0) + 1;
+  const keys = Object.keys(S.daily).sort(); while (keys.length > 14) delete S.daily[keys.shift()]; save(); }
+function dailyCount(key) { return (S.daily[today()] || {})[key] || 0; }
+
+/* ---------- Speech ---------- */
+const Speech = {
+  voice: null, supported: "speechSynthesis" in window, checked: false,
+  init() {
+    if (!this.supported) { this.showNote(); return; }
+    const pickVoice = () => {
+      const vs = speechSynthesis.getVoices() || [];
+      const fr = vs.filter((v) => /^fr[-_]FR/i.test(v.lang));
+      const anyFr = vs.filter((v) => /^fr/i.test(v.lang));
+      const pool = fr.length ? fr : anyFr;
+      this.voice = pool.find((v) => /premium|enhanced|natural|neural/i.test(v.name)) || pool.find((v) => /google/i.test(v.name)) ||
+        pool.find((v) => /am[eé]lie|thomas|audrey|marie|aur[eé]lie|denise|julie/i.test(v.name)) || pool[0] || null;
+      if (vs.length) { this.checked = true; this.showNote(); }
+    };
+    pickVoice();
+    try { speechSynthesis.addEventListener("voiceschanged", pickVoice); } catch (e) { speechSynthesis.onvoiceschanged = pickVoice; }
+    setTimeout(() => { pickVoice(); this.checked = true; this.showNote(); }, 2500);
+  },
+  showNote() {
+    const el = $("#voice-note");
+    if (!el) return;
+    if (this.supported && (this.voice || !this.checked)) { el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = this.supported
+      ? "<b>No French voice found on this device.</b> Audio needs one. <b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → French (France), download one (Amélie or Thomas), then reload. <b>Android:</b> Settings → System → Languages → Text-to-speech → Google engine → Install voice data → French (France)."
+      : "<b>This browser can't speak.</b> Open the app in Safari (iPhone) or Chrome (Android) for audio.";
+  },
+  rate(mult = 1) { return (S.settings.slow ? 0.7 : 0.95) * mult; },
+  utter(text, mult) {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "fr-FR"; if (this.voice) u.voice = this.voice; u.rate = this.rate(mult);
+    return u;
+  },
+  say(text, btn) {
+    if (!this.supported || !text) return;
+    try {
+      speechSynthesis.cancel();
+      const u = this.utter(sayable(text));
+      if (btn) { btn.classList.add("playing"); const off = () => btn.classList.remove("playing"); u.onend = off; u.onerror = off; setTimeout(off, 8000); }
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  },
+  // Several utterances in a row (letters of a word, pairs of a phone number).
+  sayList(list, btn, mult = 1) {
+    if (!this.supported || !list.length) return;
+    try {
+      speechSynthesis.cancel();
+      list.forEach((t, i) => {
+        const u = this.utter(t, mult);
+        if (btn && i === list.length - 1) { btn.classList.add("playing"); const off = () => btn.classList.remove("playing"); u.onend = off; u.onerror = off; }
+        speechSynthesis.speak(u);
+      });
+      if (btn) setTimeout(() => btn.classList.remove("playing"), 1500 * list.length);
+    } catch (e) {}
+  },
+};
+// Any element with data-say plays its text; data-say-list plays a "|"-separated list.
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-say],[data-say-list]");
+  if (!b) return;
+  if (b.dataset.sayList) Speech.sayList(b.dataset.sayList.split("|"), b, b.dataset.rate ? +b.dataset.rate : 1);
+  else Speech.say(b.dataset.say, b);
+});
+
+/* ---------- Shared UI pieces ---------- */
+function playBtn(say, label, big) {
+  return `<button class="play${big ? " big" : ""}" data-say="${esc(say)}" aria-label="Play ${esc(label || say)}">${ICON.play}</button>`;
+}
+function playListBtn(list, label, big, rate) {
+  return `<button class="play${big ? " big" : ""}" data-say-list="${esc(list.join("|"))}"${rate ? ` data-rate="${rate}"` : ""} aria-label="Play ${esc(label)}">${ICON.play}</button>`;
+}
+// One French item: play button, French, guide, English. o = {fr, g, en, say, frHTML, after}
+function item(o) {
+  return `<div class="item${o.cls ? " " + o.cls : ""}">${o.list ? playListBtn(o.list, o.fr) : playBtn(o.say || o.fr, o.fr)}<div class="txt">` +
+    `<div class="fr${o.big ? " big" : ""}">${o.frHTML || esc(o.fr)}</div>` +
+    (o.g ? `<div class="guide">${esc(o.g)}</div>` : "") +
+    (o.en ? `<div class="en">${esc(o.en)}</div>` : "") + (o.after || "") + `</div>${o.side || ""}</div>`;
+}
+function feedback(ok, head, o) {
+  return `<div class="fb ${ok ? "ok" : "bad"}" role="status"><div class="fb-h">${ok ? ICON.check : ICON.cross}<span>${esc(head)}</span></div>${item(o)}</div>`;
+}
+function seg(name, options, current) {
+  return `<div class="seg" role="tablist" data-seg="${name}">` + options.map(([id, label]) =>
+    `<button role="tab" data-val="${id}" aria-selected="${id === current}">${esc(label)}</button>`).join("") + `</div>`;
+}
+function sheet(title, html) {
+  closeSheet();
+  const bg = document.createElement("div");
+  bg.className = "sheet-bg"; bg.id = "sheet";
+  bg.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Close">${ICON.close}</button></div>${html}</div>`;
+  bg.addEventListener("click", (e) => { if (e.target === bg || e.target.closest("[data-close]")) closeSheet(); });
+  document.body.appendChild(bg);
+  $("[data-close]", bg).focus();
+}
+function closeSheet() { const s = $("#sheet"); if (s) s.remove(); }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+function normalize(s) { return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, ""); }
+
+/* ---------- The guide explainer ---------- */
+const GUIDE_KEY = [
+  ["zh", "the s in “measure”", "je → zhuh, bonjour → bon-ZHOOR"],
+  ["ew", "say “ee” with your lips rounded as if to whistle (French u)", "tu → TEW, salut → sa-LEW"],
+  ["uh", "the short “uh” in “about”", "je → zhuh, deux → DUH"],
+  ["ay", "“ay” as in “say”, but short and pure (é, -er, -ez)", "café → ka-FAY"],
+  ["eh", "“e” as in “bed” (è, ê, ai)", "très → TREH"],
+  ["oo", "as in “food” (ou)", "vous → VOO"],
+  ["wah", "as in “wahoo” (oi)", "moi → MWAH"],
+  ["ahn", "nasal “ah”: an, en, am, em", "cent → SAHN, France → FRAHNS"],
+  ["an", "nasal “a” of “van”: in, ain, ein, im", "vingt → VAN, cinq → SANK, bien → BYAN"],
+  ["on", "nasal “o”: on, om", "bonjour → bon-ZHOOR, onze → ONZ"],
+  ["uhn", "nasal “uh”: un", "un → UHN"],
+  ["ny", "as in “canyon” (gn)", "espagnol → es-pa-NYOL"],
+  ["r", "French R: a soft gargle at the back of the throat, not the tongue tip", "merci → mehr-SEE"],
+];
+function guideCardHTML() {
+  return `<p>Every French word has an English sound-alike underneath it, in <span class="guide" style="display:inline">italic</span>. It is a bridge, not a perfect copy: listen to the audio and copy the voice.</p>
+  <ul class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+    <li><b>CAPITALS</b> = the last syllable. French puts a light stress at the end of the phrase, never at the start.</li>
+    <li><b>Nasal vowels</b> (ahn, an, on, uhn): push the vowel through your nose and <b>don't close on the n</b>. <i>vingt</i> is not “van” with an n you can hear; stop before the tongue touches.</li>
+    <li>A lower-case <b>-ruh / -luh / -yuh</b> at the end is just a soft release: <i>quatre</i> → KAT-ruh.</li>
+    <li>Linked words (liaison, elision) are joined with a hyphen: <i>vous habitez</i> → voo-za-bee-TAY.</li>
+  </ul>
+  <div class="tbl-wrap"><table><thead><tr><th>Guide</th><th>Say</th><th>Example</th></tr></thead><tbody>` +
+    GUIDE_KEY.map(([k, how, ex]) => `<tr><td><b class="guide" style="display:inline">${esc(k)}</b></td><td>${esc(how)}</td><td class="small">${esc(ex)}</td></tr>`).join("") +
+    `</tbody></table></div>`;
+}
+
+/* ---------- App shell: tabs, toggles ---------- */
+const App = {
+  views: {},
+  current: null,
+  register(name, view) { this.views[name] = view; },
+  show(name) {
+    if (!this.views[name] || (name === "coach" && !Claude.sample)) name = "today";
+    this.current = name;
+    $$(".view").forEach((v) => (v.hidden = v.dataset.view !== name));
+    $$(".tabs button").forEach((b) => { if (b.dataset.tab === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const v = this.views[name];
+    if (!v.rendered) { v.render(); v.rendered = true; } else if (v.onShow) v.onShow();
+    if (S.tab !== name) { S.tab = name; save(); }
+    try { if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name); } catch (e) {}
+    window.scrollTo(0, 0);
+  },
+  refreshAll() {
+    applySettings();
+    for (const v of Object.values(this.views)) v.rendered = false;
+    this.show(this.current || S.tab || "today");
+  },
+};
+function applySettings() {
+  document.documentElement.classList.toggle("noguide", !S.settings.guide);
+  $("#tog-guide").setAttribute("aria-pressed", String(!!S.settings.guide));
+  $("#tog-slow").setAttribute("aria-pressed", String(!!S.settings.slow));
+}
+$("#tog-guide").addEventListener("click", () => { S.settings.guide = !S.settings.guide; applySettings(); save(); });
+$("#tog-slow").addEventListener("click", () => { S.settings.slow = !S.settings.slow; applySettings(); save(); });
+$("#btn-help").addEventListener("click", () => sheet("How to read the guide", guideCardHTML()));
+$$(".tabs button").forEach((b) => b.addEventListener("click", () => App.show(b.dataset.tab)));
+// Sub-tab helper: clicking a segment button calls handler(value).
+function bindSeg(root, name, handler) {
+  const el = $(`[data-seg="${name}"]`, root);
+  if (!el) return;
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-val]"); if (!b) return;
+    $$("button", el).forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    handler(b.dataset.val);
+  });
+}
+
+/* ---------- Claude (sample) — filled in by the Coach section ---------- */
+const Claude = { sample: null };
+
+/* ====================================================================
+   SECTION 1 — NUMBERS
+   ==================================================================== */
+const LEVELS = [
+  { id: "l0_20", label: "0–20", gen: () => rand(0, 20) },
+  { id: "l21_69", label: "21–69", gen: () => rand(21, 69) },
+  { id: "l70_99", label: "70–99", gen: () => rand(70, 99), tricky: true },
+  { id: "l0_100", label: "0–100", gen: () => rand(0, 100) },
+  { id: "l100_999", label: "100–999", gen: () => (Math.random() < 0.3 ? rand(1, 9) * 100 + pick([0, 1, 20, 21, 70, 71, 80, 81, 90, 99]) : rand(100, 999)) },
+  { id: "lk", label: "Thousands", gen: () => { const k = rand(1, 99) * 1000, x = Math.random(); return k + (x < 0.35 ? 0 : x < 0.65 ? rand(1, 9) * 100 : rand(1, 999)); } },
+  { id: "l1m", label: "Up to 1 000 000", gen: () => { const x = Math.random();
+      return x < 0.05 ? 1000000 : x < 0.25 ? rand(100, 999) * 1000 : x < 0.6 ? rand(1, 999) * 1000 + rand(0, 9) * 100 : rand(1, 999999); } },
+  { id: "lm", label: "Millions", gen: () => { const m = rand(1, 999) * 1e6, x = Math.random();
+      return m + (x < 0.45 ? 0 : x < 0.75 ? rand(1, 9) * 100000 : rand(1, 999) * 1000); } },
+];
+const LEVEL = (id) => LEVELS.find((l) => l.id === id) || LEVELS[3];
+const LEVEL_RANGE = { l0_20: [0, 20], l21_69: [21, 69], l70_99: [70, 99], l0_100: [0, 100], l100_999: [100, 999], lk: [1000, 99999], l1m: [0, 1000000], lm: [1000000, 999999999] };
+const MODES = [["listen", "Listen → type"], ["read", "Read → type"], ["choose", "Choose"], ["say", "Say it"]];
+
+// Distractors that sound or look alike: ±10, the 60s/70s and 80s/90s swaps, ±1, ±20, ±100…
+function distractors(n, levelId) {
+  const [lo, hi] = LEVEL_RANGE[levelId] || [0, 100];
+  const out = new Set();
+  const tryAdd = (x) => { if (x !== n && x >= lo && x <= hi && Number.isInteger(x)) out.add(x); };
+  const r = n % 100;
+  const base = n - r;
+  if (r >= 60 && r < 80) tryAdd(base + (r < 70 ? r + 10 : r - 10));
+  if (r >= 80) tryAdd(base + (r < 90 ? r + 10 : r - 10));
+  if (r >= 70 && r < 80) tryAdd(base + r + 20 > base + 99 ? base + r - 10 : base + r + 20); // 7x vs 9x
+  if (r >= 90) tryAdd(base + r - 20); // 9x vs 7x
+  const steps = n < 100 ? [10, -10, 1, -1, 20, -20, 11, -11, 2, -2] : n < 1000 ? [10, -10, 100, -100, 20, -20, 1, -1, 200] :
+    n < 1e6 ? [10, -10, 1000, -1000, 100, -100, 10000, -10000, 20, 2000] : [1e6, -1e6, 10e6, -10e6, 100000, -100000, 20e6, 2e6];
+  for (const s of steps) { if (out.size >= 5) break; tryAdd(n + s); }
+  while (out.size < 3) tryAdd(rand(lo, hi));
+  return shuffle([...out]).slice(0, 3);
+}
+
+const Numbers = {
+  sub: "drill", q: null, answered: false, session: { right: 0, total: 0, streak: 0 },
+  render() {
+    const v = $("#v-numbers");
+    v.innerHTML = `<div class="view-head"><span class="label">Unité 1 · Compter</span><h2>Les nombres</h2></div>` +
+      seg("num-sub", [["drill", "Drill"], ["explore", "Explorer"], ["phone", "Phone numbers"], ["cheat", "Cheat sheet"]], this.sub) +
+      `<div id="num-body" class="stack"></div>`;
+    bindSeg(v, "num-sub", (val) => { this.sub = val; this.body(); });
+    this.body();
+  },
+  body() {
+    const b = $("#num-body");
+    if (this.sub === "drill") this.drillUI(b);
+    else if (this.sub === "explore") this.exploreUI(b);
+    else if (this.sub === "phone") Phone.ui(b);
+    else this.cheatUI(b);
+  },
+  /* ----- Drill ----- */
+  drillUI(b) {
+    const lvl = S.num.level;
+    b.innerHTML = `<div class="card"><div class="stack" style="gap:8px"><span class="label">Level</span><div class="chips" id="num-levels">` +
+      LEVELS.map((l) => `<button class="chip" data-level="${l.id}" aria-pressed="${l.id === lvl}">${esc(l.label)}${l.tricky ? " ★" : ""}</button>`).join("") +
+      `</div></div><div class="stack" style="gap:8px"><span class="label">Mode</span>${seg("num-mode", MODES, S.num.mode)}</div>` +
+      `<div class="stats" id="num-stats"></div></div><div class="card margin" id="num-q"></div>` +
+      `<p class="small muted" id="num-more-wrap"></p>`;
+    $("#num-levels").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-level]"); if (!c) return;
+      S.num.level = c.dataset.level; save();
+      $$("#num-levels .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === c)));
+      this.session.streak = 0; this.next(false);
+    });
+    bindSeg(b, "num-mode", (m) => { S.num.mode = m; save(); this.next(false); });
+    this.next(false);
+    if (Claude.sample) Coach.morePracticeButton($("#num-more-wrap"), "numbers");
+  },
+  stats() {
+    const id = S.num.level, el = $("#num-stats"); if (!el) return;
+    el.innerHTML = `<div class="stat"><b>${this.session.right}/${this.session.total}</b><span>Score</span></div>` +
+      `<div class="stat"><b>${this.session.streak}</b><span>Streak</span></div>` +
+      `<div class="stat"><b>${S.num.best[id] || 0}</b><span>Best ${esc(LEVEL(id).label)}</span></div>`;
+  },
+  next(autoplay) {
+    const n = LEVEL(S.num.level).gen();
+    this.q = { n, fr: FR.toFrench(n), g: FR.numberGuide(n), mode: S.num.mode };
+    this.answered = false;
+    this.drawQ();
+    this.stats();
+    if (autoplay && this.q.mode === "listen") Speech.say(this.q.fr);
+  },
+  drawQ() {
+    const q = this.q, el = $("#num-q"); if (!el) return;
+    const big = FR.formatDigits(q.n);
+    let html = "";
+    if (q.mode === "listen") {
+      html = `<div class="q-prompt"><span class="label">Listen, then type the number</span>${playBtn(q.fr, "the number", true)}<span class="small muted">Tap to play. Tap again to repeat.</span></div>` + this.typeBox();
+    } else if (q.mode === "read") {
+      html = `<div class="q-prompt"><span class="label">Read it, then type the number</span><div class="fr big">${esc(q.fr)}</div><div class="guide">${esc(q.g)}</div></div>` + this.typeBox();
+    } else if (q.mode === "choose") {
+      const opts = shuffle([q.n, ...distractors(q.n, S.num.level)]);
+      html = `<div class="q-prompt"><span class="label">Pick the French for</span><div class="digits">${big}</div></div><div class="opts" id="num-opts">` +
+        opts.map((x) => `<button class="opt" data-n="${x}"><span class="fr">${esc(FR.toFrench(x))}</span><span class="guide">${esc(FR.numberGuide(x))}</span></button>`).join("") + `</div>`;
+    } else {
+      html = `<div class="q-prompt"><span class="label">Say it aloud in French</span><div class="digits">${big}</div></div>` +
+        `<button class="btn primary" id="num-reveal">Reveal</button>`;
+    }
+    el.innerHTML = html + `<div id="num-fb"></div>`;
+    const form = $("#num-form", el);
+    if (form) form.addEventListener("submit", (e) => { e.preventDefault(); this.checkTyped(); });
+    const opts = $("#num-opts", el);
+    if (opts) opts.addEventListener("click", (e) => { const o = e.target.closest(".opt"); if (o && !this.answered) this.checkChoice(o); });
+    const rev = $("#num-reveal", el);
+    if (rev) rev.addEventListener("click", () => this.reveal());
+  },
+  typeBox() {
+    return `<form id="num-form" class="row" autocomplete="off"><input id="num-in" class="answer" inputmode="numeric" pattern="[0-9 ]*" aria-label="Your answer in digits" placeholder="digits" style="flex:1 1 140px"><button class="btn primary wide" type="submit">Check</button></form>`;
+  },
+  record(ok) {
+    const id = S.num.level;
+    this.session.total++; S.num.played[id] = (S.num.played[id] || 0) + 1;
+    if (ok) { this.session.right++; this.session.streak++; S.num.right[id] = (S.num.right[id] || 0) + 1; }
+    else this.session.streak = 0;
+    if (this.session.streak > (S.num.best[id] || 0)) S.num.best[id] = this.session.streak;
+    markDaily("num");
+    this.stats();
+  },
+  showFb(ok, extraHead) {
+    const q = this.q;
+    $("#num-fb").innerHTML = feedback(ok, ok ? "Correct" : (extraHead || "Not quite. The answer is " + FR.formatDigits(q.n)),
+      { fr: q.fr, g: q.g, en: FR.formatDigits(q.n) }) + `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="num-next">Next</button></div>`;
+    $("#num-next").addEventListener("click", () => this.next(true));
+    $("#num-next").focus();
+  },
+  checkTyped() {
+    if (this.answered) { this.next(true); return; }
+    const val = ($("#num-in").value || "").replace(/[\s.,  ]/g, "");
+    if (!val) { $("#num-in").focus(); return; }
+    this.answered = true;
+    const ok = Number(val) === this.q.n && /^\d+$/.test(val);
+    this.record(ok);
+    this.showFb(ok, ok ? null : `You typed ${FR.formatDigits(val.replace(/\D/g, "") || "?")}. The answer is ${FR.formatDigits(this.q.n)}`);
+  },
+  checkChoice(btn) {
+    this.answered = true;
+    const ok = +btn.dataset.n === this.q.n;
+    $$("#num-opts .opt").forEach((o) => { if (+o.dataset.n === this.q.n) o.classList.add("right"); else if (o === btn) o.classList.add("wrong"); o.disabled = true; });
+    this.record(ok);
+    this.showFb(ok);
+  },
+  reveal() {
+    const q = this.q;
+    $("#num-reveal").remove();
+    $("#num-fb").innerHTML = `<div class="fb ok" style="background:var(--chip)">${item({ fr: q.fr, g: q.g, en: FR.formatDigits(q.n) })}</div>` +
+      `<p class="small muted" style="margin-top:10px">Did you say it right?</p><div class="row" style="margin-top:8px"><button class="btn ok wide" data-self="1">${ICON.check} I got it</button><button class="btn bad wide" data-self="0">${ICON.cross} Not yet</button></div>`;
+    Speech.say(q.fr);
+    $("#num-fb").addEventListener("click", (e) => {
+      const s = e.target.closest("[data-self]"); if (!s || this.answered) return;
+      this.answered = true; this.record(s.dataset.self === "1"); this.next(false);
+    });
+  },
+  /* ----- Explorer ----- */
+  exploreUI(b) {
+    b.innerHTML = `<div class="card"><div class="field"><label for="num-ex">Type any number (0 to 999 999 999)</label>` +
+      `<div class="row"><button class="btn" id="num-ex-dn" aria-label="Minus one">−1</button><input id="num-ex" class="answer" inputmode="numeric" value="97" style="flex:1 1 120px"><button class="btn" id="num-ex-up" aria-label="Plus one">+1</button></div></div><div id="num-ex-out"></div></div>`;
+    const inp = $("#num-ex"), out = $("#num-ex-out");
+    const draw = () => {
+      const raw = inp.value.replace(/[\s.,  ]/g, "");
+      if (!/^\d+$/.test(raw) || +raw > 999999999) { out.innerHTML = raw ? `<p class="muted">Use digits only, up to 999 999 999.</p>` : ""; return; }
+      const n = +raw;
+      out.innerHTML = `<div class="digits" style="font-size:1.6rem">${FR.formatDigits(n)}</div>` + item({ fr: FR.toFrench(n), g: FR.numberGuide(n), big: true });
+    };
+    inp.addEventListener("input", draw);
+    const step = (d) => { const n = Math.max(0, Math.min(999999999, (+inp.value.replace(/\D/g, "") || 0) + d)); inp.value = n; draw(); };
+    $("#num-ex-dn").addEventListener("click", () => step(-1));
+    $("#num-ex-up").addEventListener("click", () => step(1));
+    draw();
+  },
+  /* ----- Cheat sheet ----- */
+  cheatUI(b) {
+    const row = (n) => `<tr><td class="num">${FR.formatDigits(n)}</td><td>${item({ fr: FR.toFrench(n), g: FR.numberGuide(n) })}</td></tr>`;
+    const tbl = (nums) => `<div class="tbl-wrap"><table><tbody>${nums.map(row).join("")}</tbody></table></div>`;
+    b.innerHTML =
+      `<div class="card"><h3>Building blocks: 0–16 are their own words</h3>${tbl([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])}</div>` +
+      `<div class="card"><h3>17–19: ten + unit</h3><p class="formula">dix-sept = <b>10 + 7</b></p>${tbl([17, 18, 19])}</div>` +
+      `<div class="card"><h3>Tens 20–60</h3>${tbl([20, 30, 40, 50, 60])}<p>Add the unit with a hyphen: <i>vingt-deux</i>, <i>trente-cinq</i>. For <b>1</b> use <b>et</b> and no hyphens: <i>vingt et un, trente et un … soixante et un</i>.</p>${tbl([21, 22, 31, 61])}</div>` +
+      `<div class="card margin"><h3>70–99: the tricky part</h3>
+        <p>French (in France) has no single word for 70, 80 or 90. It counts on from 60, and in twenties.</p>
+        <p class="formula">70 = soixante-dix = <b>60 + 10</b></p>
+        <p class="formula">80 = quatre-vingts = <b>4 × 20</b></p>
+        <p class="formula">90 = quatre-vingt-dix = <b>4 × 20 + 10</b></p>
+        <p>So 71–79 continue <i>soixante</i> with onze, douze… dix-neuf, and 91–99 continue <i>quatre-vingt</i> the same way. Only 71 takes <b>et</b>; 81 and 91 don't.</p>
+        ${tbl([70, 71, 72, 77, 79, 80, 81, 85, 89, 90, 91, 97, 99])}
+        <p class="note">Belgium and Switzerland say <i>septante</i> (70) and <i>nonante</i> (90); Switzerland also uses <i>huitante</i> (80). Your class uses the France forms.</p></div>` +
+      `<div class="card"><h3>Hundreds</h3><p><b>cent</b> = 100, never “un cent”. <b>Deux cents</b> takes an -s only when nothing follows: <i>deux cents</i> but <i>deux cent un</i>. No hyphens around cent.</p>${tbl([100, 101, 180, 200, 201, 280, 999])}</div>` +
+      `<div class="card"><h3>Thousands and millions</h3><p><b>mille</b> never changes and is never “un mille”. <b>Million</b> is a noun: <i>un million, deux millions</i>.</p>
+        <p><i>Quatre-vingts</i> and <i>cents</i> keep the -s at the very end or before <i>millions</i>, and lose it before <i>mille</i> or another number.</p>
+        ${tbl([1000, 1001, 2000, 21000, 80000, 80080, 200000, 201000, 1000000, 1500000, 2000000, 80000000, 200000000])}
+        <p class="note">Written French separates thousands with a space: 1 500 000. A comma is the decimal point: 2,5.</p></div>` +
+      `<div class="card"><h3>Same word, different sound</h3>
+        <p>Some numbers change their last sound depending on what follows.</p>
+        <div class="tbl-wrap"><table><thead><tr><th>Word</th><th>Alone</th><th>Before a consonant</th><th>Other</th></tr></thead><tbody>
+        <tr><td>six</td><td>sees</td><td>see (six cents)</td><td>seez before a vowel (six ans)</td></tr>
+        <tr><td>dix</td><td>dees</td><td>dee (dix mille)</td><td>deez in dix-huit, dix-neuf</td></tr>
+        <tr><td>huit</td><td>weet</td><td>wee (huit cents)</td><td></td></tr>
+        <tr><td>cinq</td><td>sank</td><td>sank</td><td></td></tr>
+        <tr><td>vingt</td><td>van</td><td>van (vingt mille)</td><td>vant in 21–29; van in quatre-vingt-…</td></tr>
+        </tbody></table></div>${tbl([6, 600, 10, 10000, 18, 8, 800, 20, 23, 83])}</div>`;
+  },
+};
+App.register("numbers", Numbers);
+
+/* ----- Phone numbers ----- */
+const Phone = {
+  kind: "fr", q: null, answered: false,
+  gen() {
+    if (this.kind === "fr") return "0" + pick(["6", "7", "1"]) + Array.from({ length: 8 }, () => rand(0, 9)).join("");
+    return pick(["8", "9", "6"]) + Array.from({ length: 7 }, () => rand(0, 9)).join("");
+  },
+  fmt(d) { return FR.splitPairs(d).join(" "); },
+  fmtSG(d) { return d.slice(0, 4) + " " + d.slice(4); },
+  ui(b) {
+    b.innerHTML = `<div class="card"><p>Phone numbers are read <b>in pairs</b>. A pair starting with 0 is read “zéro …”.</p>` +
+      item({ fr: "06 12 34 56 78", list: FR.phoneFrench("0612345678"), after: `<div class="small">${esc(FR.phoneFrench("0612345678").join(", "))}</div><div class="guide">${esc(FR.phoneGuide("0612345678").join(", "))}</div>` }) +
+      `<p class="small muted">Singapore numbers have 8 digits: read them as four pairs.</p>` +
+      item({ fr: "9123 4567", list: FR.phoneFrench("91234567"), after: `<div class="small">${esc(FR.phoneFrench("91234567").join(", "))}</div><div class="guide">${esc(FR.phoneGuide("91234567").join(", "))}</div>` }) +
+      `</div><div class="card"><div class="row" style="justify-content:space-between"><span class="label">Listen → type</span>${seg("ph-kind", [["fr", "France"], ["sg", "Singapore"]], this.kind)}</div><div id="ph-q" class="stack"></div><p class="small muted" id="ph-best"></p></div>`;
+    bindSeg(b, "ph-kind", (k) => { this.kind = k; this.next(false); });
+    this.next(false);
+  },
+  next(autoplay) {
+    const d = this.gen();
+    this.q = { d, words: FR.phoneFrench(d), g: FR.phoneGuide(d) };
+    this.answered = false;
+    const el = $("#ph-q");
+    el.innerHTML = `<div class="q-prompt">${playListBtn(this.q.words, "the phone number", true, 0.9)}<span class="small muted">Tap to play the number.</span></div>` +
+      `<form id="ph-form" class="row" autocomplete="off"><input id="ph-in" class="answer" inputmode="numeric" aria-label="Phone number digits" placeholder="${this.kind === "fr" ? "06 …" : "9… …"}" style="flex:1 1 160px"><button class="btn primary wide" type="submit">Check</button></form><div id="ph-fb"></div>`;
+    $("#ph-form").addEventListener("submit", (e) => { e.preventDefault(); this.check(); });
+    $("#ph-best").textContent = `Best streak: ${S.phone.best || 0}`;
+    if (autoplay) Speech.sayList(this.q.words, $("#ph-q .play"), 0.9);
+  },
+  streak: 0,
+  check() {
+    if (this.answered) return this.next(true);
+    const val = $("#ph-in").value.replace(/\D/g, "");
+    if (!val) return;
+    this.answered = true;
+    const ok = val === this.q.d;
+    this.streak = ok ? this.streak + 1 : 0;
+    if (this.streak > (S.phone.best || 0)) S.phone.best = this.streak;
+    markDaily("num");
+    const shown = this.kind === "fr" ? this.fmt(this.q.d) : this.fmtSG(this.q.d);
+    $("#ph-fb").innerHTML = feedback(ok, ok ? "Correct" : "Not quite. The number is " + shown,
+      { fr: shown, list: this.q.words, after: `<div class="small">${esc(this.q.words.join(", "))}</div><div class="guide">${esc(this.q.g.join(", "))}</div>` }) +
+      `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="ph-next">Next number</button></div>`;
+    $("#ph-next").addEventListener("click", () => this.next(true));
+    $("#ph-best").textContent = `Best streak: ${S.phone.best || 0}`;
+  },
+};
+
+/* ====================================================================
+   Placeholder views (replaced section by section)
+   ==================================================================== */
+for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
+  if (!App.views[name]) App.register(name, { render() { $("#v-" + name).innerHTML = `<div class="card"><p class="muted">Coming soon.</p></div>`; } });
+}
+
+/* COACH-START */
+const Coach = { init() {}, morePracticeButton() {} };
+/* COACH-END */
+
+/* ---------- Boot ---------- */
+applySettings();
+Speech.init();
+App.show((location.hash || "").slice(1) || S.tab || "today");
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && h !== App.current && App.views[h]) App.show(h); });
+setTimeout(() => { Cloud.init(); Coach.init(); }, 0);
+</script>
