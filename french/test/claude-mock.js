@@ -34,7 +34,8 @@ const MOCK = (mode) => `
     return {};
   };
   sample.limits = async () => ({ maxPromptBytes: 262144, images: { maxCount: 1, maxInputBytes: 2e7, mediaTypes: ["image/jpeg", "image/png"] } });
-  const doc = (p) => ({ get: async () => ({ exists: p in window.__db, data: () => window.__db[p] }), set: async (d) => { window.__db[p] = JSON.parse(JSON.stringify(d)); } });
+  const deepFreeze = (o) => { if (o && typeof o === "object") { Object.values(o).forEach(deepFreeze); Object.freeze(o); } return o; };
+  const doc = (p) => ({ get: async () => ({ exists: p in window.__db, data: () => deepFreeze(JSON.parse(JSON.stringify(window.__db[p]))) }), set: async (d) => { window.__db[p] = JSON.parse(JSON.stringify(d)); } });
   const db = { collection: (c) => ({ doc: (id) => doc(c + "/" + id) }), doc };
   const user = { id: async () => "u_test", isOwner: async () => true };
   window.claude = { use: async (name) => { await new Promise((r) => setTimeout(r, 50)); return name === "sample" ? sample : name === "db" ? db : name === "user" ? user : null; } };
@@ -102,11 +103,24 @@ const MOCK = (mode) => `
   ctx = await browser.newContext({ viewport: { width: 360, height: 780 } });
   p = await ctx.newPage();
   await p.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
-  await p.addInitScript(`window.__db = {"data/users/u_test/progress": {state: {updatedAt: ${Date.now() + 1000}, settings: {guide: false, slow: true}, phrases: {learned: {k1_merci: true}, open: 2}}}};`);
+  await p.addInitScript(`window.__db = {"data/users/u_test/progress": {state: {updatedAt: ${Date.now() + 1000}, settings: {guide: false, slow: true}, phrases: {learned: {k1_merci: true}, open: 2}, daily: {"${new Date().toISOString().slice(0, 10)}": {num: 30}}, num: {played: {l0_100: 30}, right: {l0_100: 21}, best: {l0_100: 5}}}}};`);
   await p.addInitScript(MOCK("granted"));
   await p.goto("file://" + tmp);
   await p.waitForTimeout(700);
   if (!(await p.evaluate(() => document.documentElement.classList.contains("noguide") && S.phrases.open === 2))) fail("newer db progress not applied on load");
+  // Regression: progress loaded from the (read-only) db must stay editable — flashcard buttons and drills keep working.
+  p.on("pageerror", (e) => fail("pageerror after db load: " + e.message));
+  await p.click('[data-tab="phrases"]');
+  await p.click('#v-phrases [data-seg="ph-sub"] button[data-val="cards"]');
+  for (let i = 0; i < 3; i++) { await p.click("#pc-flip"); await p.click('#pc-back [data-k="' + (i % 2) + '"]'); }
+  if (!(await p.isVisible("#pc-flip"))) fail("flashcards stuck after Knew it / Not yet with db-loaded progress");
+  if ((await p.evaluate(() => dailyCount("phr"))) !== 3) fail("flashcard marks not counted with db-loaded progress");
+  await p.click('[data-tab="numbers"]');
+  await p.click('#v-numbers [data-seg="num-sub"] button[data-val="drill"]');
+  await p.click('[data-seg="num-mode"] button[data-val="read"]');
+  for (const d of String(await p.evaluate(() => Numbers.q.n))) await p.click(`#num-pad [data-key="${d}"]`);
+  await p.click('#num-pad [data-key="ok"]');
+  if (!(await p.isVisible("#num-fb .fb.ok"))) fail("numbers drill broken with db-loaded progress");
   await ctx.close();
 
   // 3. Denied: first call rejects not_granted → features hide, app keeps working.

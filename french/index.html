@@ -89,6 +89,16 @@ main{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px;p
 .btn svg{width:18px;height:18px}
 input[type=text],input[type=number],input:not([type]),select,textarea{min-height:var(--tap);width:100%;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--card);padding:8px 12px;font-size:1rem}
 textarea{min-height:96px;resize:vertical}
+.kp-disp{min-height:50px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--paper);font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;padding:0 12px}
+.kp-disp:empty::before{content:attr(data-ph);color:var(--muted);font-weight:400;font-size:1.1rem;letter-spacing:0}
+#num-q,#ph-q{gap:10px;scroll-margin-top:calc(64px + env(safe-area-inset-top,0px))}
+#num-q .q-prompt,#ph-q .q-prompt{padding:0;gap:6px}
+#num-q .play.big,#ph-q .play.big{width:60px;height:60px}
+.keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.key{min-height:48px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--card);font-size:1.45rem;font-weight:700;font-variant-numeric:tabular-nums;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.key:active{background:var(--chip)}
+.key.ok-key{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:1.05rem}
+.key.del-key{font-size:1.1rem}
 .answer{font-size:1.5rem;font-variant-numeric:tabular-nums;letter-spacing:.04em;text-align:center}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field label{font-weight:700;font-size:.9rem}
@@ -365,7 +375,8 @@ const DEFAULT_STATE = () => ({
   daily: {},
 });
 function merge(base, extra) {
-  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return extra === undefined ? base : extra;
+  if (extra && typeof extra === "object") extra = JSON.parse(JSON.stringify(extra));
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return extra === undefined || extra === null ? base : extra;
   const out = Array.isArray(base) ? base.slice() : { ...base };
   for (const k of Object.keys(extra)) {
     out[k] = base && typeof base[k] === "object" && base[k] !== null && !Array.isArray(base[k]) ? merge(base[k], extra[k]) : extra[k];
@@ -389,7 +400,8 @@ const Cloud = {
       if (!id) return;
       this.ref = db.collection("data/users/" + id).doc("progress");
       const snap = await this.ref.get();
-      const remote = snap.exists ? (snap.data() || {}).state : null;
+      // Snapshot data is read-only; copy it so the app can keep changing its state.
+      const remote = snap.exists ? JSON.parse(JSON.stringify((snap.data() || {}).state || null)) : null;
       if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) {
         S = merge(DEFAULT_STATE(), remote);
         saveLocal();
@@ -588,6 +600,48 @@ function bindSeg(root, name, handler) {
 /* ---------- Claude (sample) — filled in by the Coach section ---------- */
 const Claude = { sample: null };
 
+// If a quiz card doesn't fit between the header and the tab bar, scroll it to just under the header.
+function fitCard(el) {
+  if (!el || el.offsetParent === null) return;
+  const r = el.getBoundingClientRect(), navH = ($("nav.tabs") || {}).offsetHeight || 62, headH = ($(".top") || {}).offsetHeight || 56;
+  if (r.top < headH || r.bottom > window.innerHeight - navH) window.scrollBy({ top: r.top - headH - 8, behavior: "auto" });
+}
+/* ---------- On-screen number keypad (no phone keyboard, no scrolling to submit) ---------- */
+function keypadHTML(prefix, placeholder) {
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "del", "0", "ok"];
+  return `<div class="kp-disp" id="${prefix}-disp" data-ph="${esc(placeholder)}" role="status" aria-label="Your answer"></div><div id="${prefix}-fb"></div>` +
+    `<div class="keypad" id="${prefix}-pad">` + keys.map((k) => `<button type="button" class="key${k === "ok" ? " ok-key" : k === "del" ? " del-key" : ""}" data-key="${k}"` +
+      ` aria-label="${k === "del" ? "Delete" : k === "ok" ? "Check" : k}">${k === "del" ? "⌫" : k === "ok" ? "Check" : k}</button>`).join("") + `</div>`;
+}
+const Keypad = {
+  active: null,
+  // o = {max, fmt(value) → display text, onOk(value)}
+  bind(prefix, o) {
+    const kp = { value: "", prefix, o, disp: $("#" + prefix + "-disp"), pad: $("#" + prefix + "-pad") };
+    kp.draw = () => { kp.disp.textContent = kp.value ? o.fmt(kp.value) : ""; };
+    kp.press = (k) => {
+      if (k === "ok") { if (kp.value) o.onOk(kp.value); return; }
+      if (k === "del") kp.value = kp.value.slice(0, -1);
+      else if (/^\d$/.test(k) && kp.value.length < o.max) kp.value += k;
+      kp.draw();
+    };
+    kp.pad.addEventListener("click", (e) => { const b = e.target.closest("[data-key]"); if (b) kp.press(b.dataset.key); });
+    this.active = kp;
+    return kp;
+  },
+};
+// A hardware keyboard also works: digits, Backspace, Enter.
+document.addEventListener("keydown", (e) => {
+  const kp = Keypad.active;
+  if (!kp || !kp.pad.isConnected || kp.pad.offsetParent === null || kp.pad.hidden) return;
+  if (e.target.closest && e.target.closest("input,textarea,select") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^\d$/.test(e.key)) kp.press(e.key);
+  else if (e.key === "Backspace") kp.press("del");
+  else if (e.key === "Enter") { const n = document.querySelector("#" + kp.prefix + "-next"); if (n) n.click(); else kp.press("ok"); }
+  else return;
+  e.preventDefault();
+});
+
 /* ====================================================================
    SECTION 1 — NUMBERS
    ==================================================================== */
@@ -630,7 +684,7 @@ const Numbers = {
   render() {
     const v = $("#v-numbers");
     v.innerHTML = `<div class="view-head"><span class="label">Unité 1 · Compter</span><h2>Les nombres</h2></div>` +
-      seg("num-sub", [["drill", "Drill"], ["explore", "Explorer"], ["phone", "Phone numbers"], ["cheat", "Cheat sheet"]], this.sub) +
+      seg("num-sub", [["drill", "Drill"], ["explore", "Explorer"], ["phone", "Phone"], ["cheat", "Cheat sheet"]], this.sub) +
       `<div id="num-body" class="stack"></div>`;
     bindSeg(v, "num-sub", (val) => { this.sub = val; this.body(); });
     this.body();
@@ -645,10 +699,10 @@ const Numbers = {
   /* ----- Drill ----- */
   drillUI(b) {
     const lvl = S.num.level;
-    b.innerHTML = `<div class="card"><div class="stack" style="gap:8px"><span class="label">Level</span><div class="chips" id="num-levels">` +
+    b.innerHTML = `<div class="card margin" id="num-q"></div><div class="stats" id="num-stats"></div>` +
+      `<div class="card"><div class="stack" style="gap:8px"><span class="label">Level</span><div class="chips" id="num-levels">` +
       LEVELS.map((l) => `<button class="chip" data-level="${l.id}" aria-pressed="${l.id === lvl}">${esc(l.label)}${l.tricky ? " ★" : ""}</button>`).join("") +
-      `</div></div><div class="stack" style="gap:8px"><span class="label">Mode</span>${seg("num-mode", MODES, S.num.mode)}</div>` +
-      `<div class="stats" id="num-stats"></div></div><div class="card margin" id="num-q"></div>` +
+      `</div></div><div class="stack" style="gap:8px"><span class="label">Mode</span>${seg("num-mode", MODES, S.num.mode)}</div></div>` +
       `<p class="small muted" id="num-more-wrap"></p>`;
     $("#num-levels").addEventListener("click", (e) => {
       const c = e.target.closest("[data-level]"); if (!c) return;
@@ -673,13 +727,14 @@ const Numbers = {
     this.drawQ();
     this.stats();
     if (autoplay && this.q.mode === "listen") Speech.say(this.q.fr);
+    requestAnimationFrame(() => fitCard($("#num-q")));
   },
   drawQ() {
     const q = this.q, el = $("#num-q"); if (!el) return;
     const big = FR.formatDigits(q.n);
     let html = "";
     if (q.mode === "listen") {
-      html = `<div class="q-prompt"><span class="label">Listen, then type the number</span>${playBtn(q.fr, "the number", true)}<span class="small muted">Tap to play. Tap again to repeat.</span></div>` + this.typeBox();
+      html = `<div class="q-prompt"><span class="label">Listen, then type the number</span>${playBtn(q.fr, "the number", true)}</div>` + this.typeBox();
     } else if (q.mode === "read") {
       html = `<div class="q-prompt"><span class="label">Read it, then type the number</span><div class="fr big">${esc(q.fr)}</div><div class="guide">${esc(q.g)}</div></div>` + this.typeBox();
     } else if (q.mode === "choose") {
@@ -690,17 +745,15 @@ const Numbers = {
       html = `<div class="q-prompt"><span class="label">Say it aloud in French</span><div class="digits">${big}</div></div>` +
         `<button class="btn primary" id="num-reveal">Reveal</button>`;
     }
-    el.innerHTML = html + `<div id="num-fb"></div>`;
-    const form = $("#num-form", el);
-    if (form) form.addEventListener("submit", (e) => { e.preventDefault(); this.checkTyped(); });
+    const typed = q.mode === "listen" || q.mode === "read";
+    el.innerHTML = html + (typed ? "" : `<div id="num-fb"></div>`);
+    if (typed) this.kp = Keypad.bind("num", { max: 9, fmt: (v) => FR.formatDigits(v), onOk: (v) => this.checkTyped(v) });
     const opts = $("#num-opts", el);
     if (opts) opts.addEventListener("click", (e) => { const o = e.target.closest(".opt"); if (o && !this.answered) this.checkChoice(o); });
     const rev = $("#num-reveal", el);
     if (rev) rev.addEventListener("click", () => this.reveal());
   },
-  typeBox() {
-    return `<form id="num-form" class="row" autocomplete="off"><input id="num-in" class="answer" inputmode="numeric" pattern="[0-9 ]*" aria-label="Your answer in digits" placeholder="digits" style="flex:1 1 140px"><button class="btn primary wide" type="submit">Check</button></form>`;
-  },
+  typeBox() { return keypadHTML("num", "Type the number"); },
   record(ok) {
     const id = S.num.level;
     this.session.total++; S.num.played[id] = (S.num.played[id] || 0) + 1;
@@ -713,14 +766,13 @@ const Numbers = {
   showFb(ok, extraHead) {
     const q = this.q;
     $("#num-fb").innerHTML = feedback(ok, ok ? "Correct" : (extraHead || "Not quite. The answer is " + FR.formatDigits(q.n)),
-      { fr: q.fr, g: q.g, en: FR.formatDigits(q.n) }) + `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="num-next">Next</button></div>`;
+      { fr: q.fr, g: q.g, en: FR.formatDigits(q.n) }) + `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="num-next" style="min-height:52px">Next →</button></div>`;
+    const pad = $("#num-pad"); if (pad) pad.hidden = true;
     $("#num-next").addEventListener("click", () => this.next(true));
-    $("#num-next").focus();
+    $("#num-next").focus({ preventScroll: true });
   },
-  checkTyped() {
-    if (this.answered) { this.next(true); return; }
-    const val = ($("#num-in").value || "").replace(/[\s.,  ]/g, "");
-    if (!val) { $("#num-in").focus(); return; }
+  checkTyped(val) {
+    if (this.answered || !val) return;
     this.answered = true;
     const ok = Number(val) === this.q.n && /^\d+$/.test(val);
     this.record(ok);
@@ -818,17 +870,16 @@ const Phone = {
     this.q = { d, words: FR.phoneFrench(d), g: FR.phoneGuide(d) };
     this.answered = false;
     const el = $("#ph-q");
-    el.innerHTML = `<div class="q-prompt">${playListBtn(this.q.words, "the phone number", true, 0.9)}<span class="small muted">Tap to play the number.</span></div>` +
-      `<form id="ph-form" class="row" autocomplete="off"><input id="ph-in" class="answer" inputmode="numeric" aria-label="Phone number digits" placeholder="${this.kind === "fr" ? "06 …" : "9… …"}" style="flex:1 1 160px"><button class="btn primary wide" type="submit">Check</button></form><div id="ph-fb"></div>`;
-    $("#ph-form").addEventListener("submit", (e) => { e.preventDefault(); this.check(); });
+    el.innerHTML = `<div class="q-prompt">${playListBtn(this.q.words, "the phone number", true, 0.9)}</div>` +
+      keypadHTML("ph", this.kind === "fr" ? "06 …" : "9… …");
+    Keypad.bind("ph", { max: this.kind === "fr" ? 10 : 8, fmt: (v) => (this.kind === "fr" ? FR.splitPairs(v).join(" ") : v.length > 4 ? v.slice(0, 4) + " " + v.slice(4) : v), onOk: (v) => this.check(v) });
     $("#ph-best").textContent = `Best streak: ${S.phone.best || 0}`;
+    requestAnimationFrame(() => fitCard($("#ph-q").closest(".card")));
     if (autoplay) Speech.sayList(this.q.words, $("#ph-q .play"), 0.9);
   },
   streak: 0,
-  check() {
-    if (this.answered) return this.next(true);
-    const val = $("#ph-in").value.replace(/\D/g, "");
-    if (!val) return;
+  check(val) {
+    if (this.answered || !val) return;
     this.answered = true;
     const ok = val === this.q.d;
     this.streak = ok ? this.streak + 1 : 0;
@@ -837,7 +888,8 @@ const Phone = {
     const shown = this.kind === "fr" ? this.fmt(this.q.d) : this.fmtSG(this.q.d);
     $("#ph-fb").innerHTML = feedback(ok, ok ? "Correct" : "Not quite. The number is " + shown,
       { fr: shown, list: this.q.words, after: `<div class="small">${esc(this.q.words.join(", "))}</div><div class="guide">${esc(this.q.g.join(", "))}</div>` }) +
-      `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="ph-next">Next number</button></div>`;
+      `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="ph-next" style="min-height:52px">Next number →</button></div>`;
+    $("#ph-pad").hidden = true;
     $("#ph-next").addEventListener("click", () => this.next(true));
     $("#ph-best").textContent = `Best streak: ${S.phone.best || 0}`;
   },

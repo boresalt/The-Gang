@@ -62,3 +62,13 @@ Choices made overnight without asking. Each one is easy to reverse.
 - Claude features live in a "Coach" tab plus "Explain" / "More practice" buttons; all of
   them stay hidden until `claude.use("sample")` resolves to a function, and hide again for
   the visit if the first call is refused.
+
+## After first use (fixes)
+- **Flashcard buttons froze after progress loaded from claude.ai.** The artifact database hands
+  back read-only objects; the app now copies them before using them. A regression test in
+  `test/claude-mock.js` loads frozen data and taps Knew it / Not yet.
+- **Number answers use an on-screen keypad** instead of the phone keyboard (iOS's number
+  keyboard has no Return key, and it pushed the Check button off screen). The question card now
+  sits above the level/mode settings and scrolls itself into view when it doesn't fit. After
+  checking, a Next button replaces the keypad in the same place. A hardware keyboard still works
+  (digits, Backspace, Enter).

@@ -15,6 +15,12 @@ const wrapped = `<!doctype html><html><head><meta charset="utf-8"><meta name="vi
 const tmp = path.join(outDir, "page.html");
 fs.writeFileSync(tmp, wrapped);
 
+// Tap digits on the on-screen keypad, then Check.
+async function typeKeys(p, prefix, digits) {
+  for (const d of digits) await p.click(`#${prefix}-pad [data-key="${d}"]`);
+  await p.click(`#${prefix}-pad [data-key="ok"]`);
+}
+
 // Behaviour checks: answering quizzes, the guide toggle, and progress surviving a reload.
 async function functional(p, problems) {
   const fail = (m) => problems.push("functional: " + m);
@@ -22,13 +28,25 @@ async function functional(p, problems) {
   await p.click('#v-numbers [data-seg="num-sub"] button[data-val="drill"]');
   await p.click('[data-seg="num-mode"] button[data-val="read"]');
   const n = await p.evaluate(() => Numbers.q.n);
-  await p.fill("#num-in", String(n));
-  await p.click('#num-form button[type="submit"]');
+  await typeKeys(p, "num", String(n));
   if (!(await p.isVisible("#num-fb .fb.ok"))) fail("numbers read mode: correct answer not marked correct");
   await p.click("#num-next");
-  await p.fill("#num-in", "123456789");
-  await p.click('#num-form button[type="submit"]');
+  await typeKeys(p, "num", "123456789");
+  if (!(await p.isHidden("#num-pad"))) fail("numbers: keypad still showing after answering");
   if (!(await p.isVisible("#num-fb .fb.bad .fr"))) fail("numbers: wrong answer feedback lacks the French");
+  // The Next button sits where the keypad was, and the keypad and Check are on screen without scrolling.
+  await p.click("#num-next");
+  const okBox = await p.$eval('#num-pad [data-key="ok"]', (el) => el.getBoundingClientRect().bottom);
+  if (okBox > 780 - 62 - 8) fail(`numbers: Check key is below the fold (${Math.round(okBox)}px)`);
+  // Hardware keyboard: digits + Enter.
+  const k = await p.evaluate(() => Numbers.q.n);
+  await p.keyboard.type(String(k)); await p.keyboard.press("Enter");
+  if (!(await p.isVisible("#num-fb .fb.ok"))) fail("numbers: hardware keyboard answer not accepted");
+  // Phone numbers with the keypad.
+  await p.click('#v-numbers [data-seg="num-sub"] button[data-val="phone"]');
+  await typeKeys(p, "ph", await p.evaluate(() => Phone.q.d));
+  if (!(await p.isVisible("#ph-fb .fb.ok"))) fail("phone: correct number not accepted");
+  await p.click('#v-numbers [data-seg="num-sub"] button[data-val="drill"]');
   await p.click('[data-seg="num-mode"] button[data-val="choose"]');
   const c = await p.evaluate(() => Numbers.q.n);
   await p.click(`#num-opts .opt[data-n="${c}"]`);
