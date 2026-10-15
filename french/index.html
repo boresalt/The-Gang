@@ -159,7 +159,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card
 .tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 .gender-m{color:var(--masc)} .gender-f{color:var(--fem)} .gender-p{color:var(--plural)}
-.tag{display:inline-flex;align-items:center;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:2px 6px}
+.tag{align-self:flex-start;flex:0 0 auto;display:inline-flex;align-items:center;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:2px 6px}
 .tag.m{background:var(--masc-soft);color:var(--masc)} .tag.f{background:var(--fem-soft);color:var(--fem)} .tag.p{background:var(--plural-soft);color:var(--plural)}
 .hidden-claude{display:none!important}
 @media (prefers-reduced-motion: no-preference){
@@ -356,7 +356,8 @@ const DEFAULT_STATE = () => ({
   num: { level: "l0_100", mode: "listen", best: {}, played: {}, right: {} },
   phone: { best: 0 },
   alpha: { best: 0, right: 0, played: 0 },
-  profile: { name: "Aiyan", gender: "", nat: "singapourien", city: "Singapour", age: 30, langs: ["anglais", "chinois"], phone: "91234567" },
+  profile: { name: "Aiyan", gender: "", nat: "singapourien", city: "Singapour", age: 30, langs: ["anglais", "chinois"], frPeu: true, phone: "91234567" },
+  me: { right: 0, played: 0 }, meHideText: false,
   phrases: { learned: {}, open: 1, seen: {} },
   vocab: { known: {} },
   daily: {},
@@ -1042,6 +1043,246 @@ const AlphaQuiz = {
 };
 
 /* ====================================================================
+   SECTION 3 — SE PRÉSENTER
+   ==================================================================== */
+const NATS = [
+  ["singapourien", "singapourienne", "san-ga-poo-RYAN", "san-ga-poo-RYEN", "Singaporean"],
+  ["chinois", "chinoise", "shee-NWAH", "shee-NWAHZ", "Chinese"],
+  ["malaisien", "malaisienne", "ma-leh-ZYAN", "ma-leh-ZYEN", "Malaysian"],
+  ["indien", "indienne", "an-DYAN", "an-DYEN", "Indian"],
+  ["indonésien", "indonésienne", "an-do-nay-ZYAN", "an-do-nay-ZYEN", "Indonesian"],
+  ["japonais", "japonaise", "zha-po-NEH", "zha-po-NEZ", "Japanese"],
+  ["coréen", "coréenne", "ko-ray-AN", "ko-ray-EN", "Korean"],
+  ["vietnamien", "vietnamienne", "vyet-na-MYAN", "vyet-na-MYEN", "Vietnamese"],
+  ["thaïlandais", "thaïlandaise", "ta-ee-lahn-DEH", "ta-ee-lahn-DEZ", "Thai"],
+  ["philippin", "philippine", "fee-lee-PAN", "fee-lee-PEEN", "Filipino"],
+  ["australien", "australienne", "os-tra-LYAN", "os-tra-LYEN", "Australian"],
+  ["américain", "américaine", "a-may-ree-KAN", "a-may-ree-KEN", "American"],
+  ["anglais", "anglaise", "ahn-GLEH", "ahn-GLEZ", "English"],
+  ["français", "française", "frahn-SEH", "frahn-SEZ", "French"],
+  ["allemand", "allemande", "al-MAHN", "al-MAHND", "German"],
+  ["espagnol", "espagnole", "es-pa-NYOL", "es-pa-NYOL", "Spanish"],
+  ["italien", "italienne", "ee-ta-LYAN", "ee-ta-LYEN", "Italian"],
+];
+const NAT_PATTERNS = [
+  ["-ien → -ienne", "The nasal “yan” opens into “yen” and you hear the n.", "italien → italienne"],
+  ["-ais / -ois → -aise / -oise", "Add -e and the silent s is now heard as “z”.", "chinois → chinoise"],
+  ["-ain / -in → -aine / -ine", "The nasal disappears: “kan” → “ken”, “pan” → “peen”.", "américain → américaine"],
+  ["-éen → -éenne", "Same as -ien: the n becomes audible.", "coréen → coréenne"],
+  ["-and → -ande", "The silent d is now heard.", "allemand → allemande"],
+  ["-ol → -ole", "Spelling changes, sound doesn't.", "espagnol → espagnole"],
+];
+// [city, guide for "à + city", English]
+const CITIES = [
+  ["Singapour", "a san-ga-POOR", "Singapore"], ["Paris", "a pa-REE", "Paris"], ["Kuala Lumpur", "a kwa-la-loom-POOR", "Kuala Lumpur"],
+  ["Jakarta", "a zha-kar-TAH", "Jakarta"], ["Bangkok", "a bahn-KOK", "Bangkok"], ["Manille", "a ma-NEEL", "Manila"],
+  ["Hanoï", "a a-no-EE", "Hanoi"], ["Tokyo", "a to-KYOH", "Tokyo"], ["Séoul", "a say-OOL", "Seoul"], ["Pékin", "a pay-KAN", "Beijing"],
+  ["Shanghai", "a shahn-GUY", "Shanghai"], ["Hong Kong", "a ong-KONG", "Hong Kong"], ["Sydney", "a seed-NAY", "Sydney"],
+  ["Londres", "a LON-druh", "London"], ["New York", "a nyoo-YORK", "New York"],
+];
+// [phrase, guide, English, preposition]
+const COUNTRIES = [
+  ["en France", "ahn FRAHNS", "in France", "en"], ["en Chine", "ahn SHEEN", "in China", "en"], ["en Malaisie", "ahn ma-leh-ZEE", "in Malaysia", "en"],
+  ["en Inde", "ah-NAND", "in India", "en"], ["en Indonésie", "ah-nan-do-nay-ZEE", "in Indonesia", "en"], ["en Corée", "ahn ko-RAY", "in Korea", "en"],
+  ["en Thaïlande", "ahn ta-ee-LAHND", "in Thailand", "en"], ["en Australie", "ah-nos-tra-LEE", "in Australia", "en"], ["en Angleterre", "ah-nahn-gluh-TEHR", "in England", "en"],
+  ["en Allemagne", "ah-nal-MAN-yuh", "in Germany", "en"], ["en Espagne", "ah-nes-PAN-yuh", "in Spain", "en"], ["en Italie", "ah-nee-ta-LEE", "in Italy", "en"],
+  ["au Japon", "oh zha-PON", "in Japan", "au"], ["au Viêt Nam", "oh vyet-NAM", "in Vietnam", "au"], ["au Canada", "oh ka-na-DAH", "in Canada", "au"],
+  ["au Royaume-Uni", "oh rwa-yohm-ew-NEE", "in the United Kingdom", "au"],
+  ["aux États-Unis", "oh-zay-ta-zew-NEE", "in the United States", "aux"], ["aux Philippines", "oh fee-lee-PEEN", "in the Philippines", "aux"],
+];
+const LANGS = [
+  ["anglais", "ahn-GLEH", "English"], ["chinois", "shee-NWAH", "Chinese (Mandarin)"], ["malais", "ma-LEH", "Malay"], ["tamoul", "ta-MOOL", "Tamil"],
+  ["hindi", "een-DEE", "Hindi"], ["cantonais", "kahn-to-NEH", "Cantonese"], ["japonais", "zha-po-NEH", "Japanese"], ["coréen", "ko-ray-AN", "Korean"],
+  ["indonésien", "an-do-nay-ZYAN", "Indonesian"], ["vietnamien", "vyet-na-MYAN", "Vietnamese"], ["thaï", "ta-EE", "Thai"], ["espagnol", "es-pa-NYOL", "Spanish"],
+  ["allemand", "al-MAHN", "German"], ["italien", "ee-ta-LYAN", "Italian"], ["français", "frahn-SEH", "French"],
+];
+// Join guide pieces: every piece but the last is lower-cased, so only the last syllable stays capitalised.
+// A piece given as {raw} (a typed name) is kept exactly as typed.
+function gjoin(parts) {
+  return parts.filter((p) => p !== "" && p != null).map((p, i, a) => (typeof p === "object" ? p.raw : i === a.length - 1 ? p : p.toLowerCase())).join(" ");
+}
+const Profile = {
+  get p() { return S.profile; },
+  nat() { return NATS.find((n) => n[0] === this.p.nat) || NATS[0]; },
+  g() { return this.p.gender; }, // "m", "f" or "" (not chosen yet)
+  natFr() { const n = this.nat(); return this.g() === "f" ? n[1] : this.g() === "m" ? n[0] : n[0] === n[1] ? n[0] : `${n[0]} / ${n[1]}`; },
+  natG() { const n = this.nat(); return this.g() === "f" ? n[3] : this.g() === "m" ? n[2] : n[2] === n[3] ? n[2] : `${n[2]} / ${n[3]}`; },
+  name() { return (this.p.name || "").trim() || "Aiyan"; },
+  city() { return (this.p.city || "").trim() || "Singapour"; },
+  cityG() { const c = CITIES.find((x) => x[0].toLowerCase() === this.city().toLowerCase()); return c ? c[1] : gjoin(["a", { raw: this.city() }]); },
+  age() { const a = Math.round(+this.p.age); return a >= 1 && a <= 120 ? a : 30; },
+  enchante() { return this.g() === "f" ? "Enchantée !" : this.g() === "m" ? "Enchanté !" : "Enchanté(e) !"; },
+  langs() {
+    const sel = LANGS.filter((l) => (this.p.langs || []).includes(l[0]) && !(this.p.frPeu && l[0] === "français"));
+    const items = sel.map((l) => [l[0], l[1]]);
+    if (this.p.frPeu) items.push(["un peu français", "uhn puh frahn-SEH"]);
+    if (!items.length) items.push(["anglais", "ahn-GLEH"]);
+    const fr = items.length === 1 ? items[0][0] : items.slice(0, -1).map((x) => x[0]).join(", ") + " et " + items[items.length - 1][0];
+    const gp = []; items.forEach((x, i) => { if (i === items.length - 1 && i > 0) gp.push("ay"); gp.push(x[1]); });
+    return { fr, g: gjoin(gp) };
+  },
+  phone() { const d = String(this.p.phone || "").replace(/\D/g, ""); return d.length >= 8 && d.length % 2 === 0 ? d : "91234567"; },
+  email() { return normalize(this.name()) || "aiyan"; },
+};
+// The questions, in tu and vous forms, with model answers built from the profile.
+const QUESTIONS = [
+  { id: "nom", en: "What's your name?", tu: ["Comment tu t'appelles ?", "ko-mahn tew ta-PEL"], vous: ["Comment vous appelez-vous ?", "ko-mahn voo-za-play VOO"],
+    ans: () => [{ fr: `Je m'appelle ${Profile.name()}.`, g: gjoin(["zhuh ma-pel", { raw: Profile.name() }]), en: `My name is ${Profile.name()}.` }] },
+  { id: "nat", en: "What nationality are you?", tu: ["Tu es de quelle nationalité ?", "tew eh duh kel na-syo-na-lee-TAY"], vous: ["Vous êtes de quelle nationalité ?", "voo-zet duh kel na-syo-na-lee-TAY"],
+    ans: () => [{ fr: `Je suis ${Profile.natFr()}.`, g: gjoin(["zhuh swee", Profile.natG()]), en: `I'm ${Profile.nat()[4]}.` }] },
+  { id: "ville", en: "Where do you live?", tu: ["Tu habites où ?", "tew a-beet OO"], vous: ["Vous habitez où ?", "voo-za-bee-tay OO"],
+    ans: () => [{ fr: `J'habite à ${Profile.city()}.`, g: gjoin(["zha-beet", Profile.cityG()]), en: `I live in ${(CITIES.find((c) => c[0] === Profile.city()) || [0, 0, Profile.city()])[2]}.` }] },
+  { id: "age", en: "How old are you?", tu: ["Quel âge as-tu ?", "ke-lazh a-TEW"], vous: ["Quel âge avez-vous ?", "ke-lazh a-vay-VOO"],
+    ans: () => { const a = Profile.age(); return [{ fr: `J'ai ${a} ${a === 1 ? "an" : "ans"}.`, say: `J'ai ${FR.agePhrase(a)}.`, g: gjoin(["zhay", FR.ageGuide(a)]), en: `I'm ${a} (years old).`,
+      note: `${a} ${a === 1 ? "an" : "ans"} = ${FR.agePhrase(a)}. French says “I have … years”: never “je suis 30”.` }]; } },
+  { id: "langues", en: "Which languages do you speak?", tu: ["Tu parles quelles langues ?", "tew parl kel LAHNG"], vous: ["Vous parlez quelles langues ?", "voo par-lay kel LAHNG"],
+    ans: () => { const l = Profile.langs(); return [{ fr: `Je parle ${l.fr}.`, g: gjoin(["zhuh parl", l.g]), en: "I speak " + l.fr.replace(/un peu français/, "a little French") + "." }]; } },
+  { id: "tel", en: "What's your phone number?", tu: ["Quel est ton numéro de téléphone ?", "kel eh ton new-may-roh duh tay-lay-FON"], vous: ["Quel est votre numéro de téléphone ?", "kel eh vo-truh new-may-roh duh tay-lay-FON"],
+    ans: () => { const d = Profile.phone(), shown = d.length === 8 ? d.slice(0, 4) + " " + d.slice(4) : FR.splitPairs(d).join(" ");
+      return [{ fr: `C'est le ${shown}.`, say: `C'est le ${FR.phoneFrench(d).join(", ")}.`, g: gjoin(["seh luh", FR.phoneGuide(d).join(", ")]), en: `It's ${shown}.`, note: "Say it in pairs: " + FR.phoneFrench(d).join(", ") + "." }]; } },
+  { id: "mail", en: "What's your email address?", tu: ["Quelle est ton adresse e-mail ?", "kel eh to-na-dres ee-MEL"], vous: ["Quelle est votre adresse e-mail ?", "kel eh vo-tra-dres ee-MEL"],
+    ans: () => [{ fr: `C'est ${Profile.email()}@exemple.com.`, say: `C'est ${Profile.email()} arobase exemple point com.`, g: gjoin(["seh", { raw: Profile.email() }, "a-ro-baz eg-zahn-pluh pwan KOM"]),
+      en: "@ = arobase, . = point (example address)", note: "@ arobase (a-ro-BAZ) · . point (PWAN) · - tiret (tee-REH) · _ tiret bas (tee-reh BAH). Ton, not ta, before a vowel: ton adresse." }] },
+  { id: "enchante", en: "Nice to meet you!", tu: ["Enchanté(e) !", "ahn-shahn-TAY"], vous: ["Enchanté(e) !", "ahn-shahn-TAY"],
+    ans: () => [{ fr: Profile.enchante(), g: "ahn-shahn-TAY", en: "Nice to meet you too.", note: "A woman writes enchantée; it sounds the same." }] },
+  { id: "cava", en: "How are you?", tu: ["Comment ça va ?", "ko-mahn sa VAH"], vous: ["Comment allez-vous ?", "ko-mahn-ta-lay VOO"],
+    ans: (form) => [form === "vous" ? { fr: "Je vais bien, merci. Et vous ?", g: "zhuh vay byan, mehr-SEE. ay VOO", en: "I'm well, thank you. And you?" }
+      : { fr: "Ça va bien, merci. Et toi ?", g: "sa va byan, mehr-SEE. ay TWAH", en: "I'm fine, thanks. And you?" }] },
+];
+
+const Me = {
+  sub: "questions",
+  render() {
+    const v = $("#v-me");
+    v.innerHTML = `<div class="view-head"><span class="label">Unité 2 · Se présenter</span><h2>Moi</h2></div>` +
+      seg("me-sub", [["questions", "Questions"], ["builder", "My introduction"], ["drill", "Speaking drill"], ["nats", "Nationalities"], ["places", "Places"]], this.sub) +
+      `<div id="me-body" class="stack"></div>`;
+    bindSeg(v, "me-sub", (val) => { this.sub = val; this.body(); });
+    this.body();
+  },
+  onShow() { this.body(); },
+  body() {
+    const b = $("#me-body");
+    ({ questions: () => this.questionsUI(b), builder: () => this.builderUI(b), drill: () => MeDrill.ui(b), nats: () => this.natsUI(b), places: () => this.placesUI(b) })[this.sub]();
+  },
+  ansHTML(a) { return item({ fr: a.fr, say: a.say || a.fr, g: a.g, en: a.en, after: a.note ? `<div class="small muted" style="margin-top:4px">${esc(a.note)}</div>` : "" }); },
+  questionsUI(b) {
+    b.innerHTML = `<div class="card margin"><h3>Tu or vous?</h3><p><b>tu</b>: one person you know well: a friend, family, a classmate, a child.</p>` +
+      `<p><b>vous</b>: someone you don't know, someone older, your teacher, and <b>always for two or more people</b>.</p><p class="small muted">Not sure? Use vous. The other person may say “On peut se tutoyer ?” (Shall we use tu?).</p></div>` +
+      QUESTIONS.map((q) => `<div class="card"><span class="label">${esc(q.en)}</span>` +
+        `<div class="stack" style="gap:10px">${item({ fr: q.tu[0], g: q.tu[1], en: "tu (friendly)", say: sayable(q.tu[0]) })}` +
+        (q.vous[0] !== q.tu[0] ? item({ fr: q.vous[0], g: q.vous[1], en: "vous (polite)" }) : "") + `</div>` +
+        `<div class="note stack" style="gap:8px"><span class="label">Answer</span>${q.ans("tu").map((a) => this.ansHTML(a)).join("")}` +
+        (q.id === "cava" ? this.ansHTML(q.ans("vous")[0]) : "") + `</div>` + explainBtn(q.tu[0]) + `</div>`).join("") +
+      `<p class="small muted">Answers use your profile from “My introduction”.</p>`;
+  },
+  builderUI(b) {
+    const p = S.profile;
+    const cityKnown = CITIES.some((c) => c[0] === p.city);
+    b.innerHTML = `<div class="card"><h3>About you</h3>
+      <div class="field"><label for="pf-name">Name</label><input id="pf-name" value="${esc(p.name)}" autocomplete="off"></div>
+      <div class="field"><span class="label" id="pf-g-l">Masculine or feminine forms?</span><div class="chips" role="group" aria-labelledby="pf-g-l">
+        <button class="chip" data-g="m" aria-pressed="${p.gender === "m"}">Masculine · je suis singapourien</button>
+        <button class="chip" data-g="f" aria-pressed="${p.gender === "f"}">Feminine · je suis singapourienne</button></div>
+        ${p.gender ? "" : `<p class="small muted">Choose one so your sentences use the right endings.</p>`}</div>
+      <div class="field"><label for="pf-nat">Nationality</label><select id="pf-nat">${NATS.map((n) => `<option value="${esc(n[0])}" ${n[0] === p.nat ? "selected" : ""}>${esc(n[4])} · ${esc(n[0])} / ${esc(n[1])}</option>`).join("")}</select></div>
+      <div class="field"><label for="pf-city">City</label><select id="pf-city">${CITIES.map((c) => `<option ${c[0] === p.city ? "selected" : ""}>${esc(c[0])}</option>`).join("")}<option value="__other" ${cityKnown ? "" : "selected"}>Other…</option></select>
+        <input id="pf-city-other" placeholder="Type your city" value="${cityKnown ? "" : esc(p.city)}" ${cityKnown ? "hidden" : ""}></div>
+      <div class="field"><label for="pf-age">Age</label><input id="pf-age" inputmode="numeric" value="${esc(p.age)}"></div>
+      <div class="field"><span class="label">Languages you speak</span><div class="chips" id="pf-langs">${LANGS.map((l) => `<button class="chip" data-lang="${esc(l[0])}" aria-pressed="${(p.langs || []).includes(l[0])}">${esc(l[0])}</button>`).join("")}</div>
+        <label class="row small" style="gap:8px;min-height:44px"><input type="checkbox" id="pf-peu" ${p.frPeu ? "checked" : ""} style="width:22px;height:22px;min-height:0"> Add “un peu français” (a little French)</label></div>
+      <div class="field"><label for="pf-phone">Phone number for practice (digits)</label><input id="pf-phone" inputmode="numeric" value="${esc(p.phone)}"></div>
+      </div><div class="card margin" id="pf-out"></div>`;
+    const out = $("#pf-out");
+    const lines = () => [
+      { fr: "Bonjour !", g: "bon-ZHOOR", en: "Hello!" },
+      QUESTIONS[0].ans()[0], QUESTIONS[1].ans()[0], QUESTIONS[2].ans()[0], QUESTIONS[3].ans()[0], QUESTIONS[4].ans()[0],
+      { fr: Profile.enchante(), g: "ahn-shahn-TAY", en: "Nice to meet you!" },
+    ];
+    const draw = () => {
+      const L = lines();
+      out.innerHTML = `<div class="row" style="justify-content:space-between"><h3>Ma présentation</h3>${playListBtn(L.map((l) => sayable(l.say || l.fr)), "the whole introduction", false)}</div>` +
+        `<p class="fr" style="font-size:1.12rem">${esc(L.map((l) => l.fr).join(" "))}</p>` +
+        `<div class="list">${L.map((l) => item({ fr: l.fr, say: l.say || l.fr, g: l.g, en: l.en })).join("")}</div>` + explainBtn(L.map((l) => l.fr).join(" "));
+    };
+    const set = (k, v) => { S.profile[k] = v; save(); draw(); };
+    $("#pf-name").addEventListener("input", (e) => set("name", e.target.value));
+    $$("[data-g]", b).forEach((c) => c.addEventListener("click", () => { set("gender", c.dataset.g); this.builderUI(b); }));
+    $("#pf-nat").addEventListener("change", (e) => set("nat", e.target.value));
+    $("#pf-city").addEventListener("change", (e) => {
+      const other = e.target.value === "__other"; $("#pf-city-other").hidden = !other;
+      if (other) { $("#pf-city-other").focus(); set("city", $("#pf-city-other").value); } else set("city", e.target.value);
+    });
+    $("#pf-city-other").addEventListener("input", (e) => set("city", e.target.value));
+    $("#pf-age").addEventListener("input", (e) => set("age", e.target.value.replace(/\D/g, "")));
+    $("#pf-langs").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-lang]"); if (!c) return;
+      const on = c.getAttribute("aria-pressed") !== "true"; c.setAttribute("aria-pressed", String(on));
+      const set2 = new Set(S.profile.langs || []); on ? set2.add(c.dataset.lang) : set2.delete(c.dataset.lang);
+      set("langs", LANGS.map((l) => l[0]).filter((x) => set2.has(x)));
+    });
+    $("#pf-peu").addEventListener("change", (e) => set("frPeu", e.target.checked));
+    $("#pf-phone").addEventListener("input", (e) => set("phone", e.target.value.replace(/\D/g, "")));
+    draw();
+  },
+  natsUI(b) {
+    b.innerHTML = `<div class="card"><h3>Masculine and feminine</h3><p>Nationality words agree with the person: <i>il est chinois</i>, <i>elle est chinoise</i>. No capital letter for the adjective in French.</p>` +
+      `<div class="tbl-wrap"><table><thead><tr><th>Ending</th><th>What happens</th></tr></thead><tbody>${NAT_PATTERNS.map(([e, w, x]) => `<tr><td><b>${esc(e)}</b><div class="small muted">${esc(x)}</div></td><td>${esc(w)}</td></tr>`).join("")}</tbody></table></div></div>` +
+      `<div class="card"><div class="list">${NATS.map((n) => `<div class="item" style="flex-direction:column;gap:6px"><span class="label">${esc(n[4])}</span>` +
+        item({ fr: n[0], g: n[2], side: `<span class="tag m">masc.</span>` }) + item({ fr: n[1], g: n[3], side: `<span class="tag f">fém.</span>` }) + `</div>`).join("")}</div></div>`;
+  },
+  placesUI(b) {
+    b.innerHTML = `<div class="card margin"><h3>à, en, au, aux</h3>
+      <p><b>à</b> + a city: <i>J'habite à Paris.</i> Singapore is a city-state, so it's <b>à Singapour</b>.</p>
+      <p><b>en</b> + a feminine country (most end in -e) or any country starting with a vowel: <i>en France, en Iran</i>.</p>
+      <p><b>au</b> + a masculine country: <i>au Japon, au Canada</i>. <b>aux</b> + a plural country: <i>aux États-Unis</i>.</p></div>` +
+      `<div class="card"><h3>Cities: à</h3><div class="list">${CITIES.map((c) => item({ fr: "à " + c[0], g: c[1], en: "in " + c[2] })).join("")}</div></div>` +
+      ["en", "au", "aux"].map((pr) => `<div class="card"><h3>Countries: ${pr}</h3><div class="list">${COUNTRIES.filter((c) => c[3] === pr).map((c) => item({ fr: c[0], g: c[1], en: c[2] })).join("")}</div></div>`).join("");
+  },
+};
+App.register("me", Me);
+
+const MeDrill = {
+  q: null, form: "tu",
+  ui(b) {
+    b.innerHTML = `<div class="card"><p>The app asks a question. Answer out loud, then check the model answer (built from your profile).</p>` +
+      `<label class="row small" style="gap:8px;min-height:44px"><input type="checkbox" id="md-hide" ${S.meHideText ? "checked" : ""} style="width:22px;height:22px;min-height:0"> Listening only (hide the question text)</label></div>` +
+      `<div class="card margin" id="md-q"></div><div class="stats" id="md-stats"></div>`;
+    $("#md-hide").addEventListener("change", (e) => { S.meHideText = e.target.checked; save(); this.draw(); });
+    this.next(false);
+  },
+  stats() {
+    const el = $("#md-stats"); if (!el) return;
+    el.innerHTML = `<div class="stat"><b>${S.me.right}</b><span>Got it</span></div><div class="stat"><b>${S.me.played - S.me.right}</b><span>Not yet</span></div><div class="stat"><b>${S.me.played}</b><span>Answered</span></div>`;
+  },
+  next(autoplay) {
+    let q; do { q = pick(QUESTIONS); } while (this.q && q.id === this.q.id);
+    this.q = q; this.form = q.id === "enchante" ? "tu" : pick(["tu", "vous"]);
+    this.draw();
+    if (autoplay) Speech.say(sayable(this.q[this.form][0]));
+  },
+  draw() {
+    const q = this.q, [fr, g] = q[this.form], el = $("#md-q"); if (!el) return;
+    el.innerHTML = `<div class="q-prompt"><span class="label">${this.form === "tu" ? "Friendly (tu)" : "Polite (vous)"}</span>${playBtn(sayable(fr), "the question", true)}` +
+      (S.meHideText ? `<span class="small muted">Tap to hear the question.</span>` : `<div class="fr big">${esc(fr)}</div><div class="guide">${esc(g)}</div><div class="en">${esc(q.en)}</div>`) +
+      `</div><button class="btn primary" id="md-show">Show model answer</button><div id="md-a"></div>`;
+    $("#md-show").addEventListener("click", () => {
+      $("#md-show").remove();
+      const as = q.ans(this.form);
+      $("#md-a").innerHTML = (S.meHideText ? `<p class="fr" style="margin-bottom:8px">${esc(fr)}</p>` : "") +
+        `<div class="fb" style="background:var(--chip)">${as.map((a) => Me.ansHTML(a)).join("")}</div>` +
+        `<p class="small muted" style="margin-top:10px">Did you answer well?</p><div class="row" style="margin-top:8px"><button class="btn ok wide" data-self="1">${ICON.check} I got it</button><button class="btn bad wide" data-self="0">${ICON.cross} Not yet</button></div>`;
+      Speech.say(sayable(as[0].say || as[0].fr));
+      $("#md-a").addEventListener("click", (e) => {
+        const s = e.target.closest("[data-self]"); if (!s) return;
+        S.me.played++; if (s.dataset.self === "1") S.me.right++; markDaily("me"); this.stats(); this.next(true);
+      }, { once: false });
+    });
+    this.stats();
+  },
+};
+
+/* ====================================================================
    Placeholder views (replaced section by section)
    ==================================================================== */
 for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
@@ -1050,6 +1291,7 @@ for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
 
 /* COACH-START */
 const Coach = { init() {}, morePracticeButton() {} };
+function explainBtn() { return ""; }
 /* COACH-END */
 
 /* ---------- Boot ---------- */
