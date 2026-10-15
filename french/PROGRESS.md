@@ -7,6 +7,6 @@
 | 2 | Alphabet & sounds (letters, accents, quizzes, spell my name, sound rules) | done |
 | 3 | Se présenter (Q&A tu/vous, nationalities, places, introduction builder, speaking drill) | done |
 | 4 | In class (objects by gender, instructions, survival phrases, flashcards, un ou une quiz) | done |
-| 5 | Phrase packs + Today | in progress |
-| 6 | Claude inside the app | not started |
+| 5 | Phrase packs (4 packs, 70% suggestion, open early, flashcards) + Today 10-minute plan | done |
+| 6 | Claude inside the app | in progress |
 | 7 | README + publish | not started |

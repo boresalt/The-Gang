@@ -101,6 +101,7 @@ textarea{min-height:96px;resize:vertical}
 .guide{font-style:italic;color:var(--guide);font-size:.98rem;overflow-wrap:anywhere}
 .guide::before{content:"≈ ";opacity:.7;font-style:normal}
 html.noguide .guide{display:none}
+.gk{font-style:italic;color:var(--guide)}
 .en{color:var(--muted);font-size:.92rem}
 .play{flex:0 0 auto;width:var(--tap);height:var(--tap);border-radius:999px;border:0;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
 .play svg{width:20px;height:20px}
@@ -529,7 +530,7 @@ const GUIDE_KEY = [
   ["r", "French R: a soft gargle at the back of the throat, not the tongue tip", "merci → mehr-SEE"],
 ];
 function guideCardHTML() {
-  return `<p>Every French word has an English sound-alike underneath it, in <span class="guide" style="display:inline">italic</span>. It is a bridge, not a perfect copy: listen to the audio and copy the voice.</p>
+  return `<p>Every French word has an English sound-alike underneath it, in <span class="gk">italic</span>. It is a bridge, not a perfect copy: listen to the audio and copy the voice.</p>
   <ul class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
     <li><b>CAPITALS</b> = the last syllable. French puts a light stress at the end of the phrase, never at the start.</li>
     <li><b>Nasal vowels</b> (ahn, an, on, uhn): push the vowel through your nose and <b>don't close on the n</b>. <i>vingt</i> is not “van” with an n you can hear; stop before the tongue touches.</li>
@@ -537,7 +538,7 @@ function guideCardHTML() {
     <li>Linked words (liaison, elision) are joined with a hyphen: <i>vous habitez</i> → voo-za-bee-TAY.</li>
   </ul>
   <div class="tbl-wrap"><table><thead><tr><th>Guide</th><th>Say</th><th>Example</th></tr></thead><tbody>` +
-    GUIDE_KEY.map(([k, how, ex]) => `<tr><td><b class="guide" style="display:inline">${esc(k)}</b></td><td>${esc(how)}</td><td class="small">${esc(ex)}</td></tr>`).join("") +
+    GUIDE_KEY.map(([k, how, ex]) => `<tr><td><b class="gk">${esc(k)}</b></td><td>${esc(how)}</td><td class="small">${esc(ex)}</td></tr>`).join("") +
     `</tbody></table></div>`;
 }
 
@@ -1427,6 +1428,187 @@ const UnUne = {
 };
 
 /* ====================================================================
+   SECTION 5 — PHRASE PACKS + TODAY
+   ==================================================================== */
+const PACKS = [
+  { n: 1, title: "Saluer et remercier", en: "Greetings and politeness", items: [
+    ["bonjour", "Bonjour !", "bon-ZHOOR", "Hello! / Good morning!"], ["bonsoir", "Bonsoir !", "bon-SWAHR", "Good evening!"],
+    ["salut", "Salut !", "sa-LEW", "Hi! / Bye! (with friends)"], ["aurevoir", "Au revoir !", "oh ruh-VWAHR", "Goodbye!"],
+    ["merci", "Merci.", "mehr-SEE", "Thank you."], ["mercibcp", "Merci beaucoup.", "mehr-see boh-KOO", "Thank you very much."],
+    ["derien", "De rien.", "duh RYAN", "You're welcome."], ["svp", "S'il vous plaît.", "seel voo PLEH", "Please. (polite)"],
+    ["stp", "S'il te plaît.", "seel tuh PLEH", "Please. (friendly)"], ["excusez", "Excusez-moi.", "eks-kew-zay MWAH", "Excuse me."],
+    ["pardon", "Pardon !", "par-DON", "Sorry! / Pardon?"], ["madame", "Bonjour, madame.", "bon-zhoor, ma-DAM", "Hello. (to a woman)"],
+    ["monsieur", "Bonjour, monsieur.", "bon-zhoor, muh-SYUH", "Hello. (to a man)"], ["ouinon", "Oui. / Non.", "WEE / NON", "Yes. / No."],
+    ["bonnenuit", "Bonne nuit !", "bun NWEE", "Good night!"] ] },
+  { n: 2, title: "Ça va ?", en: "How are you?", items: [
+    ["commentcava", "Comment ça va ?", "ko-mahn sa VAH", "How are you?"], ["cava", "Ça va ?", "sa VAH", "How's it going? / All right?"],
+    ["cavabien", "Ça va bien, merci.", "sa va byan, mehr-SEE", "I'm fine, thanks."], ["allezvous", "Comment allez-vous ?", "ko-mahn-ta-lay VOO", "How are you? (polite)"],
+    ["vaisbien", "Je vais bien, merci.", "zhuh vay byan, mehr-SEE", "I'm well, thank you."], ["ettoi", "Et toi ?", "ay TWAH", "And you? (friendly)"],
+    ["etvous", "Et vous ?", "ay VOO", "And you? (polite)"], ["tresbien", "Très bien !", "treh BYAN", "Very well!"],
+    ["super", "Super !", "sew-PEHR", "Great!"], ["pasmal", "Pas mal.", "pa MAL", "Not bad."],
+    ["commeci", "Comme ci, comme ça.", "kom see, kom SAH", "So-so."], ["pastres", "Pas très bien.", "pa treh BYAN", "Not very well."],
+    ["fatigue", "Je suis fatigué(e).", "zhuh swee fa-tee-GAY", "I'm tired."] ] },
+  { n: 3, title: "Survivre en classe", en: "Classroom survival", items: SURVIVAL.map((x) => x.slice()).concat([
+    ["retard", "Excusez-moi, je suis en retard.", "eks-kew-zay MWAH, zhuh swee-zahn ruh-TAR", "Sorry, I'm late."],
+    ["epeler", "Vous pouvez épeler, s'il vous plaît ?", "voo poo-vay ay-puh-LAY, seel voo PLEH", "Can you spell it, please?"],
+    ["page", "C'est quelle page ?", "seh kel PAZH", "Which page is it?"],
+    ["absent", "J'étais absent(e) la semaine dernière.", "zhay-teh ap-sahn(t) la suh-men dehr-NYEHR", "I was absent last week."] ]) },
+  { n: 4, title: "Faire connaissance", en: "Getting to know people", items: [
+    ["enchante", "Enchanté(e) !", "ahn-shahn-TAY", "Nice to meet you!"], ["moiaussi", "Moi aussi.", "mwa oh-SEE", "Me too."],
+    ["unpeu", "Je parle un peu français.", "zhuh parl uhn puh frahn-SEH", "I speak a little French."],
+    ["anglais", "Vous parlez anglais ?", "voo par-lay ahn-GLEH", "Do you speak English?"],
+    ["ettoinom", "Et toi, tu t'appelles comment ?", "ay twa, tew ta-pel ko-MAHN", "And you, what's your name?"],
+    ["viensde", "Je viens de Singapour.", "zhuh vyan duh san-ga-POOR", "I'm from Singapore."],
+    ["journee", "Bonne journée !", "bun zhoor-NAY", "Have a good day!"], ["soiree", "Bonne soirée !", "bun swa-RAY", "Have a good evening!"],
+    ["bientot", "À bientôt !", "a byan-TOH", "See you soon!"], ["demain", "À demain !", "a duh-MAN", "See you tomorrow!"],
+    ["aplus", "À plus !", "a PLEWS", "See you! (casual)"], ["semaine", "À la semaine prochaine !", "a la suh-men pro-SHEN", "See you next week!"],
+    ["weekend", "Bon week-end !", "bon wee-KEND", "Have a good weekend!"] ] },
+];
+PACKS.forEach((p) => p.items.forEach((x) => { x[0] = "k" + p.n + "_" + x[0]; }));
+const ALL_PHRASES = PACKS.flatMap((p) => p.items.map((x) => ({ id: x[0], fr: x[1], g: x[2], en: x[3], pack: p.n })));
+const packLearned = (p) => p.items.filter((x) => S.phrases.learned[x[0]]).length;
+const packPct = (p) => packLearned(p) / p.items.length;
+const phraseSay = (fr) => sayable(fr.replace(" / ", " "));
+
+const Phrases = {
+  sub: "packs", openPack: null, focus: null,
+  render() {
+    const v = $("#v-phrases");
+    v.innerHTML = `<div class="view-head"><span class="label">Unités 1–2 · Phrases utiles</span><h2>Phrases</h2></div>` +
+      seg("ph-sub", [["packs", "Packs"], ["cards", "Flashcards"]], this.sub) + `<div id="phr-body" class="stack"></div>`;
+    bindSeg(v, "ph-sub", (val) => { this.sub = val; this.focus = null; this.body(); });
+    this.body();
+  },
+  onShow() { this.render(); },
+  body() { const b = $("#phr-body"); this.sub === "packs" ? this.packsUI(b) : PhraseCards.ui(b, this.focus); },
+  suggestion() {
+    const cur = PACKS[S.phrases.open - 1], nxt = PACKS[S.phrases.open];
+    if (!nxt || packPct(cur) < 0.7) return "";
+    return `<div class="card margin"><p><b>Ready for pack ${nxt.n}.</b> You've learned ${Math.round(packPct(cur) * 100)}% of pack ${cur.n}.</p><button class="btn primary" data-open-pack="${nxt.n}">Open pack ${nxt.n}: ${esc(nxt.title)}</button></div>`;
+  },
+  packsUI(b) {
+    if (this.openPack) return this.packUI(b, PACKS[this.openPack - 1]);
+    b.innerHTML = this.suggestion() + PACKS.map((p) => {
+      const open = p.n <= S.phrases.open, L = packLearned(p), pct = Math.round((L / p.items.length) * 100);
+      return `<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><span class="label">Pack ${p.n} · week ${p.n}</span><h3 class="fr" style="font-size:1.3rem">${esc(p.title)}</h3><p class="muted small">${esc(p.en)}</p></div>` +
+        (open ? `<span class="tag ${pct >= 70 ? "m" : "p"}">${L}/${p.items.length} learned</span>` : `<span class="tag p">Not open yet</span>`) + `</div>` +
+        `<div style="height:8px;border-radius:99px;background:var(--chip);overflow:hidden"><div style="height:100%;width:${open ? pct : 0}%;background:var(--ok)"></div></div>` +
+        (open ? `<button class="btn" data-pack="${p.n}">Open the phrases</button>` : `<button class="btn" data-open-pack="${p.n}">Open early</button>`) + `</div>`;
+    }).join("");
+    b.onclick = (e) => {
+      const o = e.target.closest("[data-open-pack]"), p = e.target.closest("[data-pack]");
+      if (o) { S.phrases.open = Math.max(S.phrases.open, +o.dataset.openPack); save(); this.openPack = +o.dataset.openPack; this.body(); }
+      else if (p) { this.openPack = +p.dataset.pack; this.body(); }
+    };
+  },
+  packUI(b, p) {
+    b.innerHTML = `<div class="row"><button class="btn" id="pk-back">← All packs</button><button class="btn primary" id="pk-practice">Practise this pack</button></div>` +
+      `<div class="card"><span class="label">Pack ${p.n}</span><h3 class="fr" style="font-size:1.35rem">${esc(p.title)}</h3><p class="small muted">Tick a phrase when you can say it without looking. ${packLearned(p)}/${p.items.length} learned.</p>` +
+      `<div class="list">${p.items.map(([id, fr, g, en]) => item({ fr, g, en, say: phraseSay(fr), after: explainBtn(fr),
+        side: `<label style="display:flex;align-items:center;gap:6px;min-height:44px;font-size:.8rem;font-weight:700;color:var(--muted)"><input type="checkbox" data-learn="${id}" ${S.phrases.learned[id] ? "checked" : ""} style="width:22px;height:22px;min-height:0">Learned</label>` })).join("")}</div></div>`;
+    b.onclick = null;
+    $("#pk-back").addEventListener("click", () => { this.openPack = null; this.body(); });
+    $("#pk-practice").addEventListener("click", () => { this.sub = "cards"; this.focus = { pack: p.n }; this.render(); });
+    $$("[data-learn]", b).forEach((c) => c.addEventListener("change", () => {
+      if (c.checked) S.phrases.learned[c.dataset.learn] = true; else delete S.phrases.learned[c.dataset.learn];
+      save(); $(".small.muted", b).textContent = `Tick a phrase when you can say it without looking. ${packLearned(p)}/${p.items.length} learned.`;
+    }));
+  },
+};
+App.register("phrases", Phrases);
+
+const PhraseCards = {
+  cur: null, ids: null,
+  ui(b, focus) {
+    const openPacks = PACKS.filter((p) => p.n <= S.phrases.open);
+    this.packSel = focus && focus.pack ? focus.pack : this.packSel || S.phrases.open;
+    this.ids = focus && focus.ids ? focus.ids.slice() : null;
+    b.innerHTML = this.ids ? `<div class="card"><p><b>Today's 5 phrases.</b> Say each one in French before you flip.</p></div>`
+      : `<div class="card"><span class="label">Pack</span>${seg("pc-pack", openPacks.map((p) => [String(p.n), `${p.n} · ${p.title}`]), String(this.packSel))}</div>`;
+    b.innerHTML += `<div class="card margin" id="pc-card"></div><p class="small muted" id="pc-count"></p><p class="small muted" id="phr-more-wrap"></p>`;
+    bindSeg(b, "pc-pack", (v) => { this.packSel = +v; this.next(); });
+    this.next();
+    if (Claude.sample) Coach.morePracticeButton($("#phr-more-wrap"), "phrases");
+  },
+  pool() {
+    if (this.ids) return ALL_PHRASES.filter((x) => this.ids.includes(x.id));
+    return ALL_PHRASES.filter((x) => x.pack === this.packSel);
+  },
+  next() {
+    const all = this.pool();
+    const unlearned = all.filter((x) => !S.phrases.learned[x.id] && (!this.cur || x.id !== this.cur.id));
+    if (this.ids && !all.length) return;
+    const pool = unlearned.length ? unlearned : all.filter((x) => !this.cur || x.id !== this.cur.id);
+    const c = this.cur = pick(pool.length ? pool : all);
+    const el = $("#pc-card");
+    el.innerHTML = `<div class="q-prompt" style="min-height:110px;justify-content:center"><span class="label">Say it in French</span><div style="font-size:1.35rem;font-weight:700">${esc(c.en)}</div></div>` +
+      `<button class="btn primary" id="pc-flip">Flip</button><div id="pc-back"></div>`;
+    $("#pc-flip").addEventListener("click", () => {
+      $("#pc-flip").remove();
+      $("#pc-back").innerHTML = `<div class="fb" style="background:var(--chip)">${item({ fr: c.fr, g: c.g, en: c.en, say: phraseSay(c.fr), big: true, after: explainBtn(c.fr) })}</div>` +
+        `<div class="row" style="margin-top:12px"><button class="btn ok wide" data-k="1">${ICON.check} Knew it</button><button class="btn bad wide" data-k="0">${ICON.cross} Not yet</button></div>`;
+      Speech.say(phraseSay(c.fr));
+      $("#pc-back").addEventListener("click", (e) => {
+        const k = e.target.closest("[data-k]"); if (!k) return;
+        if (k.dataset.k === "1") S.phrases.learned[c.id] = true; else delete S.phrases.learned[c.id];
+        markDaily("phr"); this.next();
+      });
+    });
+    const L = all.filter((x) => S.phrases.learned[x.id]).length;
+    $("#pc-count").textContent = `${L} of ${all.length} learned in this set. “Knew it” marks a phrase learned; “Not yet” keeps it in the pile.`;
+  },
+};
+
+/* ----- Today ----- */
+const PLAN_TARGET = { num: 10, phr: 5, alpha: 8 };
+function suggestedLevel() {
+  const order = ["l0_20", "l21_69", "l70_99", "l0_100", "l100_999", "lk", "l1m", "lm"];
+  let lvl = S.num.level;
+  const played = S.num.played[lvl] || 0, right = S.num.right[lvl] || 0;
+  if (played >= 20 && right / played >= 0.85) { const i = order.indexOf(lvl); if (i >= 0 && i < order.length - 1) lvl = order[i + 1]; }
+  return lvl;
+}
+function todaysPhrases() {
+  const open = ALL_PHRASES.filter((x) => x.pack <= S.phrases.open);
+  const un = open.filter((x) => !S.phrases.learned[x.id]);
+  return (un.length >= 5 ? un : un.concat(open.filter((x) => S.phrases.learned[x.id]))).slice(0, 5);
+}
+const Today = {
+  render() {
+    const v = $("#v-today");
+    let dateFr = "";
+    try { dateFr = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); } catch (e) {}
+    const lvl = suggestedLevel(), five = todaysPhrases();
+    const step = (key, n, title, mins, body, btn) => {
+      const done = dailyCount(key), target = PLAN_TARGET[key], ok = done >= target;
+      return `<div class="card${ok ? "" : " margin"}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><span class="label">Step ${n} · ${mins} min</span><h3>${esc(title)}</h3></div>` +
+        `<span class="tag ${ok ? "m" : "p"}">${ok ? "Done" : `${Math.min(done, target)}/${target}`}</span></div>${body}${btn}</div>`;
+    };
+    v.innerHTML = `<div class="view-head"><span class="label">Aujourd'hui</span><h2>Bonjour, ${esc(Profile.name())} !</h2>` +
+      (dateFr ? `<div class="row" style="gap:8px">${playBtn("Nous sommes " + dateFr + ".", "today's date")}<div><div class="fr" style="font-size:1.05rem">Nous sommes ${esc(dateFr)}.</div><div class="en">Today is ${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}.</div></div></div>` : "") + `</div>` +
+      `<p class="muted">Your 10-minute plan. Do the steps in order; each one ticks itself off as you practise.</p>` +
+      step("num", 1, "Numbers drill", 4, `<p class="small">Level <b>${esc(LEVEL(lvl).label)}</b>, listen and type. Aim for ${PLAN_TARGET.num} answers.</p>`, `<button class="btn primary" id="td-num">Start numbers</button>`) +
+      step("phr", 2, "5 phrases", 4, `<div class="list">${five.map((x) => item({ fr: x.fr, g: x.g, en: x.en, say: phraseSay(x.fr) })).join("")}</div>`, `<button class="btn primary" id="td-phr">Practise these 5</button>`) +
+      step("alpha", 3, "Alphabet quiz", 2, `<p class="small">Hear a letter, pick it. The E/I and G/J pairs come up often.</p>`, `<button class="btn primary" id="td-alpha">Start the quiz</button>`) +
+      `<div class="card"><h3>Your progress</h3><div class="stats">` +
+      `<div class="stat"><b>${Object.keys(S.phrases.learned).length}/${ALL_PHRASES.length}</b><span>Phrases</span></div>` +
+      `<div class="stat"><b>${Object.values(S.vocab.known).filter(Boolean).length}/${VOCAB.length + INSTRUCTIONS.length + SURVIVAL.length}</b><span>Class words</span></div>` +
+      `<div class="stat"><b>${Object.values(S.num.played).reduce((a, b) => a + b, 0)}</b><span>Numbers done</span></div></div>` +
+      `<div class="tbl-wrap"><table><thead><tr><th>Number level</th><th>Right</th><th>Best streak</th></tr></thead><tbody>` +
+      LEVELS.filter((l) => S.num.played[l.id]).map((l) => `<tr><td>${esc(l.label)}</td><td class="num">${S.num.right[l.id] || 0}/${S.num.played[l.id]}</td><td class="num">${S.num.best[l.id] || 0}</td></tr>`).join("") +
+      (LEVELS.some((l) => S.num.played[l.id]) ? "" : `<tr><td colspan="3" class="muted">No number drills yet. Step 1 starts one.</td></tr>`) + `</tbody></table></div></div>` +
+      `<div id="td-coach"></div>` +
+      `<details class="card"><summary style="font-weight:700;cursor:pointer;min-height:28px">How to read the sound-alike guide</summary>${guideCardHTML()}</details>`;
+    $("#td-num").addEventListener("click", () => { S.num.level = lvl; S.num.mode = "listen"; save(); Numbers.sub = "drill"; Numbers.rendered = false; App.show("numbers"); });
+    $("#td-phr").addEventListener("click", () => { Phrases.sub = "cards"; Phrases.focus = { ids: five.map((x) => x.id) }; Phrases.rendered = false; App.show("phrases"); });
+    $("#td-alpha").addEventListener("click", () => { Sounds.sub = "quiz"; AlphaQuiz.kind = "letter"; Sounds.rendered = false; App.show("sounds"); });
+    if (Claude.sample) Coach.todayCard($("#td-coach"));
+  },
+  onShow() { this.render(); },
+};
+App.register("today", Today);
+
+/* ====================================================================
    Placeholder views (replaced section by section)
    ==================================================================== */
 for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
@@ -1434,7 +1616,7 @@ for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
 }
 
 /* COACH-START */
-const Coach = { init() {}, morePracticeButton() {} };
+const Coach = { init() {}, morePracticeButton() {}, todayCard() {} };
 function explainBtn() { return ""; }
 /* COACH-END */
 

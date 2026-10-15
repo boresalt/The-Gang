@@ -44,7 +44,39 @@ async function functional(p, problems) {
   await p.waitForTimeout(300);
   if (!(await p.evaluate(() => document.documentElement.classList.contains("noguide")))) fail("guide setting lost on reload");
   if ((await p.evaluate(() => S.num.played[S.num.level])) !== score) fail("number progress lost on reload");
-  if (typeof extraChecks === "function") await extraChecks(p, fail);
+  // Phrase pack: tick a phrase, it survives reload, Today reflects it.
+  await p.click('[data-tab="phrases"]');
+  await p.click('#v-phrases [data-seg="ph-sub"] button[data-val="packs"]');
+  await p.click('[data-pack="1"]');
+  await p.check("[data-learn]");
+  await p.reload();
+  await p.waitForTimeout(300);
+  if ((await p.evaluate(() => Object.keys(S.phrases.learned).length)) !== 1) fail("phrase learned flag lost on reload");
+  await p.click('[data-tab="today"]');
+  await p.click("#td-phr");
+  if (!(await p.isVisible("#pc-card"))) fail("Today → 5 phrases did not open flashcards");
+  await p.click("#pc-flip");
+  await p.click('#pc-back [data-k="1"]');
+  // Introduction builder: choosing feminine changes the nationality ending.
+  await p.click('[data-tab="me"]');
+  await p.click('#v-me [data-seg="me-sub"] button[data-val="builder"]');
+  await p.click('[data-g="f"]');
+  if (!(await p.textContent("#pf-out")).includes("singapourienne.")) fail("feminine form not applied in introduction");
+  // Un ou une: answering shows feedback with the article.
+  await p.click('[data-tab="class"]');
+  await p.click('#v-class [data-seg="cl-sub"] button[data-val="unune"]');
+  await p.click('#uu-q [data-a="un"]');
+  if (!(await p.isVisible("#uu-fb .fb .fr"))) fail("un/une feedback missing");
+  await p.click("#uu-next");
+  await p.click('#uu-q [data-a="une"]');
+  const fbs = await p.$$eval("#uu-fb .fb", (x) => x.length);
+  if (fbs !== 1) fail("un/une: expected one feedback block, got " + fbs);
+  // Alphabet quiz: picking the right letter is marked correct.
+  await p.click('[data-tab="sounds"]');
+  await p.click('#v-sounds [data-seg="snd-sub"] button[data-val="quiz"]');
+  const L = await p.evaluate(() => AlphaQuiz.q.L);
+  await p.click(`#aq-opts .opt[data-l="${L}"]`);
+  if (!(await p.isVisible("#aq-fb .fb.ok"))) fail("alphabet quiz: correct letter not marked correct");
 }
 
 (async () => {
