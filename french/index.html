@@ -1283,6 +1283,150 @@ const MeDrill = {
 };
 
 /* ====================================================================
+   SECTION 4 — IN CLASS
+   ==================================================================== */
+// [id, article, noun, guide (with article), English, gender m/f/p, picture]
+const VOCAB = [
+  ["stylo", "un", "stylo", "uhn stee-LOH", "a pen", "m", "🖊️"], ["crayon", "un", "crayon", "uhn kreh-YON", "a pencil", "m", "✏️"],
+  ["gomme", "une", "gomme", "ewn GOM", "an eraser", "f", ""], ["regle", "une", "règle", "ewn REH-gluh", "a ruler", "f", "📏"],
+  ["cahier", "un", "cahier", "uhn ka-YAY", "an exercise book", "m", "📓"], ["livre", "un", "livre", "uhn LEE-vruh", "a book", "m", "📖"],
+  ["trousse", "une", "trousse", "ewn TROOS", "a pencil case", "f", ""], ["sac", "un", "sac", "uhn SAK", "a bag", "m", "🎒"],
+  ["table", "une", "table", "ewn TA-bluh", "a table", "f", ""], ["chaise", "une", "chaise", "ewn SHEZ", "a chair", "f", "🪑"],
+  ["tableau", "un", "tableau", "uhn ta-BLOH", "a board (whiteboard)", "m", ""], ["ordinateur", "un", "ordinateur", "uh-nor-dee-na-TUHR", "a computer", "m", "💻"],
+  ["portable", "un", "portable", "uhn por-TA-bluh", "a mobile phone", "m", "📱"], ["tablette", "une", "tablette", "ewn ta-BLET", "a tablet", "f", ""],
+  ["cle", "une", "clé USB", "ewn klay ew-es-BAY", "a USB stick", "f", ""], ["dico", "un", "dictionnaire", "uhn deek-syo-NEHR", "a dictionary", "m", ""],
+  ["feuille", "une", "feuille", "ewn FUHY", "a sheet of paper", "f", "📄"], ["ciseaux", "des", "ciseaux", "day see-ZOH", "(a pair of) scissors", "p", "✂️"],
+  ["fenetre", "une", "fenêtre", "ewn fuh-NEH-truh", "a window", "f", "🪟"], ["porte", "une", "porte", "ewn PORT", "a door", "f", "🚪"],
+  ["prof_m", "un", "professeur", "uhn pro-feh-SUHR", "a teacher (man)", "m", "👨‍🏫"], ["prof_f", "une", "professeure", "ewn pro-feh-SUHR", "a teacher (woman)", "f", "👩‍🏫"],
+  ["etud_m", "un", "étudiant", "uh-nay-tew-DYAHN", "a student (man)", "m", "👨‍🎓"], ["etud_f", "une", "étudiante", "ew-nay-tew-DYAHNT", "a student (woman)", "f", "👩‍🎓"],
+];
+const vocabFr = (v) => v[1] + " " + v[2];
+// [id, French, guide, English]
+const INSTRUCTIONS = [
+  ["ecoutez", "Écoutez.", "ay-koo-TAY", "Listen."], ["repetez", "Répétez.", "ray-pay-TAY", "Repeat."], ["lisez", "Lisez.", "lee-ZAY", "Read."],
+  ["ecrivez", "Écrivez.", "ay-kree-VAY", "Write."], ["regardez", "Regardez.", "ruh-gar-DAY", "Look."], ["completez", "Complétez.", "kon-play-TAY", "Complete."],
+  ["associez", "Associez.", "a-so-SYAY", "Match."], ["cochez", "Cochez.", "ko-SHAY", "Tick."], ["ouvrez", "Ouvrez votre livre.", "oo-vray vo-truh LEE-vruh", "Open your book."],
+  ["fermez", "Fermez votre livre.", "fehr-may vo-truh LEE-vruh", "Close your book."], ["deux", "Travaillez à deux.", "tra-va-yay a DUH", "Work in pairs."],
+];
+const SURVIVAL = [
+  ["comprends", "Je ne comprends pas.", "zhuh nuh kon-prahn PAH", "I don't understand."],
+  ["repeter", "Pouvez-vous répéter, s'il vous plaît ?", "poo-vay voo ray-pay-TAY, seel voo PLEH", "Can you repeat, please?"],
+  ["lentement", "Plus lentement, s'il vous plaît.", "plew lahnt-MAHN, seel voo PLEH", "More slowly, please."],
+  ["ditOn", "Comment dit-on « hello » en français ?", "ko-mahn dee-TON hello ahn frahn-SEH", "How do you say “hello” in French?"],
+  ["ecrit", "Ça s'écrit comment ?", "sa say-kree ko-MAHN", "How is that spelled?"],
+  ["veutDire", "Qu'est-ce que ça veut dire ?", "kes-kuh sa vuh DEER", "What does that mean?"],
+  ["sais", "Je ne sais pas.", "zhuh nuh seh PAH", "I don't know."],
+  ["question", "J'ai une question.", "zhay ewn kes-TYON", "I have a question."],
+];
+const genderTag = (g) => g === "m" ? `<span class="tag m">masc.</span>` : g === "f" ? `<span class="tag f">fém.</span>` : `<span class="tag p">plural</span>`;
+const artHTML = (v) => `<span class="gender-${v[5]}" style="font-weight:600">${esc(v[1])}</span> ${esc(v[2])}`;
+
+const ClassView = {
+  sub: "objects",
+  render() {
+    const v = $("#v-class");
+    v.innerHTML = `<div class="view-head"><span class="label">En classe</span><h2>Dans la classe</h2></div>` +
+      seg("cl-sub", [["objects", "Objects"], ["instr", "Instructions"], ["cards", "Flashcards"], ["unune", "Un ou une ?"]], this.sub) +
+      `<div id="cl-body" class="stack"></div>`;
+    bindSeg(v, "cl-sub", (val) => { this.sub = val; this.body(); });
+    this.body();
+  },
+  body() {
+    const b = $("#cl-body");
+    ({ objects: () => this.objectsUI(b), instr: () => this.instrUI(b), cards: () => Flash.ui(b), unune: () => UnUne.ui(b) })[this.sub]();
+  },
+  objectsUI(b) {
+    b.innerHTML = `<div class="card"><p>Learn every noun with its article. <span class="gender-m"><b>un</b> = masculine</span>, <span class="gender-f"><b>une</b> = feminine</span>, <span class="gender-p"><b>des</b> = plural</span>.</p>` +
+      `<p class="small muted"><i>un</i> before a vowel links: <i>un ordinateur</i> = uh-nor-dee-na-TUHR. <i>Une</i> is “ewn”, never “oon”.</p></div>` +
+      `<div class="card"><div class="list">${VOCAB.map((v) => item({ fr: vocabFr(v), frHTML: artHTML(v), g: v[3], en: v[4], side: genderTag(v[5]) })).join("")}</div></div>`;
+  },
+  instrUI(b) {
+    b.innerHTML = `<div class="card"><h3>The teacher says</h3><p class="small muted">Instructions use the vous form (the whole class).</p><div class="list">${INSTRUCTIONS.map(([, fr, g, en]) => item({ fr, g, en })).join("")}</div></div>` +
+      `<div class="card margin"><h3>You say</h3><div class="list">${SURVIVAL.map(([, fr, g, en]) => item({ fr, g, en, after: explainBtn(fr) })).join("")}</div></div>`;
+  },
+};
+App.register("class", ClassView);
+
+// Flashcards: English (or a picture) → French, flip, self-mark. Unknown cards come first.
+const Flash = {
+  deck: "objects", dir: "en", card: null,
+  cards() {
+    if (this.deck === "objects") return VOCAB.map((v) => ({ id: "v_" + v[0], fr: vocabFr(v), frHTML: artHTML(v), g: v[3], en: v[4], pic: v[6] }));
+    return INSTRUCTIONS.concat(SURVIVAL).map(([id, fr, g, en]) => ({ id: "p_" + id, fr, g, en, pic: "" }));
+  },
+  ui(b) {
+    b.innerHTML = `<div class="card">${seg("fl-deck", [["objects", "Classroom objects"], ["phrases", "Instructions & phrases"]], this.deck)}` +
+      (this.deck === "objects" ? seg("fl-dir", [["en", "English → French"], ["pic", "Picture → French"]], this.dir) : "") +
+      `<p class="small muted" id="fl-count"></p></div><div class="card margin" id="fl-card"></div>`;
+    bindSeg(b, "fl-deck", (d) => { this.deck = d; this.ui(b); });
+    bindSeg(b, "fl-dir", (d) => { this.dir = d; this.next(); });
+    this.next();
+  },
+  count() {
+    const cs = this.cards(), k = cs.filter((c) => S.vocab.known[c.id]).length;
+    $("#fl-count").textContent = `${k} of ${cs.length} marked “knew it”.`;
+  },
+  next() {
+    let cs = this.cards();
+    if (this.dir === "pic" && this.deck === "objects") cs = cs.filter((c) => c.pic);
+    const unknown = cs.filter((c) => !S.vocab.known[c.id] && (!this.card || c.id !== this.card.id));
+    const pool = unknown.length ? unknown : cs.filter((c) => !this.card || c.id !== this.card.id);
+    this.card = pick(pool);
+    const c = this.card, el = $("#fl-card"), showPic = this.dir === "pic" && this.deck === "objects";
+    el.innerHTML = `<div class="q-prompt" style="min-height:120px;justify-content:center">` +
+      (showPic ? `<div style="font-size:4rem;line-height:1" role="img" aria-label="picture">${c.pic}</div><span class="small muted">What is it in French, with un / une?</span>`
+        : `<span class="label">Say it in French</span><div style="font-size:1.4rem;font-weight:700">${esc(c.en)}</div>`) +
+      `</div><button class="btn primary" id="fl-flip">Flip</button><div id="fl-back"></div>`;
+    $("#fl-flip").addEventListener("click", () => {
+      $("#fl-flip").remove();
+      $("#fl-back").innerHTML = `<div class="fb" style="background:var(--chip)">${item({ fr: c.fr, frHTML: c.frHTML, g: c.g, en: c.en, big: true })}</div>` +
+        `<div class="row" style="margin-top:12px"><button class="btn ok wide" data-k="1">${ICON.check} Knew it</button><button class="btn bad wide" data-k="0">${ICON.cross} Not yet</button></div>`;
+      Speech.say(c.fr);
+      $("#fl-back").addEventListener("click", (e) => {
+        const k = e.target.closest("[data-k]"); if (!k) return;
+        S.vocab.known[c.id] = k.dataset.k === "1"; markDaily("vocab"); this.next();
+      });
+    });
+    this.count();
+  },
+};
+
+const UnUne = {
+  q: null, streak: 0,
+  ui(b) {
+    b.innerHTML = `<div class="card margin" id="uu-q"></div><div class="stats" id="uu-stats"></div>` +
+      `<div class="card"><h3>Clues (not rules)</h3><p class="small">Often feminine: words ending in <b>-e</b> after a consonant (une table, une porte), <b>-tion</b>, <b>-ette</b>. Often masculine: <b>-eau</b> (un tableau), <b>-eur</b> for things (un ordinateur), words ending in a consonant (un sac). There are many exceptions (un livre, un portable), so learn the article with the word.</p></div>`;
+    this.next(false);
+  },
+  stats() {
+    const u = S.vocab.unune || { right: 0, played: 0 };
+    $("#uu-stats").innerHTML = `<div class="stat"><b>${u.right}/${u.played}</b><span>All time</span></div><div class="stat"><b>${this.streak}</b><span>Streak</span></div><div class="stat"><b>${u.best || 0}</b><span>Best</span></div>`;
+  },
+  next(autoplay) {
+    const pool = VOCAB.filter((v) => v[5] !== "p" && !/^prof/.test(v[0]) && (!this.q || v[0] !== this.q[0]));
+    this.q = pick(pool);
+    const v = this.q;
+    $("#uu-q").innerHTML = `<div class="q-prompt">${v[6] ? `<div style="font-size:2.6rem;line-height:1">${v[6]}</div>` : ""}<span class="label">un ou une ?</span>` +
+      `<div class="fr big">… ${esc(v[2])}</div><div class="en">${esc(v[4])}</div></div>` +
+      `<div class="row"><button class="btn wide" data-a="un" style="font-size:1.2rem;color:var(--masc);border-color:var(--masc)">un</button><button class="btn wide" data-a="une" style="font-size:1.2rem;color:var(--fem);border-color:var(--fem)">une</button></div><div id="uu-fb"></div>`;
+    $("#uu-q").onclick = (e) => {
+      const a = e.target.closest("[data-a]"); if (!a || $("#uu-fb").innerHTML) return;
+      const ok = a.dataset.a === v[1];
+      const u = S.vocab.unune = S.vocab.unune || { right: 0, played: 0, best: 0 };
+      u.played++; if (ok) u.right++;
+      this.streak = ok ? this.streak + 1 : 0; if (this.streak > (u.best || 0)) u.best = this.streak;
+      markDaily("vocab");
+      $$("[data-a]", $("#uu-q")).forEach((x) => (x.disabled = true));
+      $("#uu-fb").innerHTML = feedback(ok, ok ? "Correct" : `It's ${v[1]} ${v[2]}`, { fr: vocabFr(v), frHTML: artHTML(v), g: v[3], en: v[4] }) +
+        `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="uu-next">Next</button></div>`;
+      $("#uu-next").addEventListener("click", () => this.next(true));
+      this.stats();
+    };
+    this.stats();
+  },
+};
+
+/* ====================================================================
    Placeholder views (replaced section by section)
    ==================================================================== */
 for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
