@@ -62,7 +62,7 @@ p{margin:0}
 .icon-btn svg{width:20px;height:20px}
 
 /* Main */
-main{max-width:640px;margin:0 auto;padding-block:16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom,0px));
+main{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px;padding-block:16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .view{display:flex;flex-direction:column;gap:16px}
 .view-head{display:flex;flex-direction:column;gap:4px}
@@ -437,7 +437,7 @@ const Speech = {
     if (this.supported && (this.voice || !this.checked)) { el.hidden = true; return; }
     el.hidden = false;
     el.innerHTML = this.supported
-      ? "<b>No French voice found on this device.</b> Audio needs one. <b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → French (France), download one (Amélie or Thomas), then reload. <b>Android:</b> Settings → System → Languages → Text-to-speech → Google engine → Install voice data → French (France)."
+      ? "<details><summary style=\"cursor:pointer\"><b>No French voice found on this device.</b> Tap to see how to add one.</summary><p style=\"margin-top:8px\"><b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → French (France), download one (Amélie or Thomas), then reload. <b>Android:</b> Settings → System → Languages → Text-to-speech → Google engine → Install voice data → French (France). Then reload this page.</p></details>"
       : "<b>This browser can't speak.</b> Open the app in Safari (iPhone) or Chrome (Android) for audio.";
   },
   rate(mult = 1) { return (S.settings.slow ? 0.7 : 0.95) * mult; },
@@ -837,6 +837,207 @@ const Phone = {
       `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="ph-next">Next number</button></div>`;
     $("#ph-next").addEventListener("click", () => this.next(true));
     $("#ph-best").textContent = `Best streak: ${S.phone.best || 0}`;
+  },
+};
+
+/* ====================================================================
+   SECTION 2 — ALPHABET & SOUNDS
+   ==================================================================== */
+// [letter, French name, guide, note for English speakers]
+const LETTERS = [
+  ["A", "a", "AH"], ["B", "bé", "BAY"], ["C", "cé", "SAY"], ["D", "dé", "DAY"],
+  ["E", "e", "UH", "Says “uh”, not “ee”. English E is French I."], ["F", "effe", "EF"],
+  ["G", "gé", "ZHAY", "“zhay”: sounds like an English J. Don't mix it up with J."], ["H", "hache", "ASH", "Called “ash”, and silent inside words: hôtel = oh-TEL."],
+  ["I", "i", "EE", "Says “ee”, like English E."], ["J", "ji", "ZHEE", "“zhee”: sounds like an English G."], ["K", "ka", "KAH"], ["L", "elle", "EL"],
+  ["M", "emme", "EM"], ["N", "enne", "EN"], ["O", "o", "OH"], ["P", "pé", "PAY"], ["Q", "qu", "KEW"],
+  ["R", "erre", "EHR", "“ehr” with the throaty French R, not “ar”."], ["S", "esse", "ES"], ["T", "té", "TAY"],
+  ["U", "u", "EW", "Not “you”: say “ee” with rounded lips."], ["V", "vé", "VAY"],
+  ["W", "double vé", "doo-bluh VAY", "“Double V”, not double U."], ["X", "ixe", "EEKS"],
+  ["Y", "i grec", "ee GREK", "“Greek i”."], ["Z", "zède", "ZED"],
+];
+const LETTER = Object.fromEntries(LETTERS.map((l) => [l[0], l]));
+const TRICKY = ["E", "I", "G", "J", "U", "R", "H", "W", "Y"];
+const ACCENTS = [
+  { ch: "é", name: "e accent aigu", g: "uh ak-sahn-tay-GEW", sound: "“ay” (closed é)", ex: ["café", "ka-FAY", "coffee"] },
+  { ch: "è", name: "e accent grave", g: "uh ak-sahn GRAHV", sound: "“eh” (open è)", ex: ["très", "TREH", "very"] },
+  { ch: "ê", name: "e accent circonflexe", g: "uh ak-sahn seer-kon-FLEKS", sound: "“eh”, like è", ex: ["fenêtre", "fuh-NEH-truh", "window"] },
+  { ch: "à", name: "a accent grave", g: "ah ak-sahn GRAHV", sound: "“ah”: same sound as a, it only tells words apart (a = has, à = to/at)", ex: ["à Paris", "a pa-REE", "in Paris"] },
+  { ch: "ç", name: "c cédille", g: "say say-DEEY", sound: "“s” before a, o, u", ex: ["français", "frahn-SEH", "French"] },
+  { ch: "ë", name: "e tréma", g: "uh tray-MAH", sound: "say the vowel on its own, separately from the one before", ex: ["Noël", "no-EL", "Christmas"] },
+  { ch: "ï", name: "i tréma", g: "ee tray-MAH", sound: "say the i separately", ex: ["maïs", "ma-EES", "corn"] },
+  { ch: "ô", name: "o accent circonflexe", g: "oh ak-sahn seer-kon-FLEKS", sound: "a long, closed “oh”", ex: ["hôtel", "oh-TEL", "hotel"] },
+  { ch: "ù", name: "u accent grave", g: "ew ak-sahn GRAHV", sound: "only in où (where), said “oo”", ex: ["où", "OO", "where"] },
+];
+const SPELL_EXTRAS = [
+  { fr: "majuscule", g: "ma-zhew-SKEWL", en: "capital letter" },
+  { fr: "minuscule", g: "mee-new-SKEWL", en: "small letter" },
+  { fr: "deux L", g: "duh-ZEL", en: "double L (for any double letter: deux S, deux T…)" },
+  { fr: "trait d'union", g: "treh dew-NYON", en: "hyphen" },
+  { fr: "apostrophe", g: "a-pos-TROF", en: "apostrophe" },
+];
+// Spelling-quiz words (unaccented, from class and city names)
+const SPELL_WORDS = [
+  ["bonjour", "bon-ZHOOR", "hello"], ["merci", "mehr-SEE", "thank you"], ["salut", "sa-LEW", "hi"], ["stylo", "stee-LOH", "pen"],
+  ["livre", "LEE-vruh", "book"], ["cahier", "ka-YAY", "notebook"], ["crayon", "kreh-YON", "pencil"], ["gomme", "GOM", "eraser"],
+  ["table", "TA-bluh", "table"], ["chaise", "SHEZ", "chair"], ["porte", "PORT", "door"], ["sac", "SAK", "bag"], ["ami", "a-MEE", "friend"],
+  ["Paris", "pa-REE", "Paris"], ["Lyon", "lee-ON", "Lyon"], ["Nice", "NEES", "Nice"], ["Lille", "LEEL", "Lille"], ["Bordeaux", "bor-DOH", "Bordeaux"],
+  ["Toulouse", "too-LOOZ", "Toulouse"], ["Nantes", "NAHNT", "Nantes"], ["Marseille", "mar-SEHY", "Marseille"], ["Dakar", "da-KAR", "Dakar"],
+  ["Singapour", "san-ga-POOR", "Singapore"], ["Tunis", "tew-NEES", "Tunis"], ["Bruxelles", "brew-SEL", "Brussels"], ["Londres", "LON-druh", "London"],
+];
+// Sound rules: [title, explanation, [[fr, guide, en], …]]
+const SOUND_RULES = [
+  ["Final consonants are usually silent", "Most consonants at the end of a word are not said. The common exceptions are C, R, F, L (think “CaReFuL”). But -er at the end of a verb is “ay”.",
+    [["petit", "puh-TEE", "small"], ["Paris", "pa-REE", "Paris"], ["vous", "VOO", "you"], ["grand", "GRAHN", "big"], ["sac", "SAK", "bag"], ["bonjour", "bon-ZHOOR", "hello"], ["neuf", "NUHF", "nine"], ["il", "EEL", "he"]]],
+  ["Final -e is silent", "A final e is not said, but it makes the consonant before it heard.",
+    [["France", "FRAHNS", "France"], ["grand / grande", "grahn / GRAHND", "big (m / f)"], ["chinois / chinoise", "shee-nwah / shee-NWAHZ", "Chinese (m / f)"], ["chaise", "SHEZ", "chair"]]],
+  ["ou = “oo”", "", [["vous", "VOO", "you"], ["douze", "DOOZ", "twelve"], ["bonjour", "bon-ZHOOR", "hello"], ["où", "OO", "where"]]],
+  ["u = “ew”", "Lips round as for “oo”, tongue says “ee”. Compare tout (too) and tu (tew).",
+    [["tu", "TEW", "you"], ["salut", "sa-LEW", "hi"], ["une", "EWN", "a, one (f)"], ["musique", "mew-ZEEK", "music"], ["tout", "TOO", "all"]]],
+  ["eu = “uh”", "", [["deux", "DUH", "two"], ["bleu", "BLUH", "blue"], ["neuf", "NUHF", "nine"], ["professeur", "pro-feh-SUHR", "teacher"]]],
+  ["oi = “wah”", "", [["moi", "MWAH", "me"], ["trois", "TRWAH", "three"], ["bonsoir", "bon-SWAHR", "good evening"], ["au revoir", "oh ruh-VWAHR", "goodbye"]]],
+  ["au, eau = “oh”", "", [["au revoir", "oh ruh-VWAHR", "goodbye"], ["beau", "BOH", "beautiful"], ["tableau", "ta-BLOH", "board"], ["bureau", "bew-ROH", "desk, office"]]],
+  ["ai = “eh”", "", [["français", "frahn-SEH", "French"], ["anglais", "ahn-GLEH", "English"], ["maison", "meh-ZON", "house"], ["j'aime", "ZHEM", "I like"]]],
+  ["é, -er, -ez = “ay”", "", [["café", "ka-FAY", "coffee"], ["parler", "par-LAY", "to speak"], ["écoutez", "ay-koo-TAY", "listen"], ["répétez", "ray-pay-TAY", "repeat"]]],
+  ["ch = “sh”", "", [["chaise", "SHEZ", "chair"], ["chinois", "shee-NWAH", "Chinese"], ["chat", "SHAH", "cat"], ["cochez", "ko-SHAY", "tick"]]],
+  ["gn = “ny”", "Like the ny in “canyon”.", [["espagnol", "es-pa-NYOL", "Spanish"], ["Allemagne", "al-MAN-yuh", "Germany"], ["Espagne", "es-PAN-yuh", "Spain"]]],
+  ["qu = “k”", "The u is silent.", [["quatre", "KAT-ruh", "four"], ["qui", "KEE", "who"], ["quinze", "KANZ", "fifteen"], ["quel âge", "kel AZH", "what age"]]],
+  ["h is silent", "Never say the h. Words starting with h usually link like a vowel.", [["hôtel", "oh-TEL", "hotel"], ["huit", "WEET", "eight"], ["j'habite", "zha-BEET", "I live"], ["homme", "OM", "man"]]],
+  ["j, ge, gi = “zh”", "But g before a, o, u is a hard g.", [["je", "ZHUH", "I"], ["bonjour", "bon-ZHOOR", "hello"], ["Belgique", "bel-ZHEEK", "Belgium"], ["page", "PAZH", "page"], ["gomme", "GOM", "eraser"], ["garçon", "gar-SON", "boy"]]],
+  ["c, ç: “s” or “k”", "c before e, i and ç are “s”. c before a, o, u is “k”.", [["merci", "mehr-SEE", "thank you"], ["ça va", "sa VAH", "how are you"], ["café", "ka-FAY", "coffee"], ["cours", "KOOR", "lesson"]]],
+  ["s between vowels = “z”", "", [["maison", "meh-ZON", "house"], ["chinoise", "shee-NWAHZ", "Chinese (f)"], ["musique", "mew-ZEEK", "music"]]],
+  ["ill = “ee-y”", "Except ville, mille and Lille, which say “eel”.", [["fille", "FEEY", "girl, daughter"], ["famille", "fa-MEEY", "family"], ["feuille", "FUHY", "sheet of paper"], ["Marseille", "mar-SEHY", "Marseille"], ["mille", "MEEL", "thousand"]]],
+  ["-tion = “syon”", "After s it is “tyon”: question.", [["nationalité", "na-syo-na-lee-TAY", "nationality"], ["information", "an-for-ma-SYON", "information"], ["question", "kes-TYON", "question"]]],
+  ["Nasal vowels", "Vowel + n or m (with no vowel after it) goes through the nose. Don't close on the n. Add a vowel or double the n and the nasal disappears: italien → italienne.",
+    [["France", "FRAHNS", "an / en = ahn"], ["vingt", "VAN", "in / ain = an"], ["pain", "PAN", "bread"], ["bonjour", "bon-ZHOOR", "on = on"], ["un", "UHN", "un = uhn"], ["italien / italienne", "ee-ta-lyan / ee-ta-LYEN", "nasal → no nasal"], ["bon / bonne", "bon / BUN", "good (m / f)"]]],
+];
+
+// Spoken form of one character when spelling something out.
+function spellPiece(ch) {
+  const up = ch.toUpperCase();
+  const acc = ACCENTS.find((a) => a.ch === ch.toLowerCase());
+  if (acc) return { say: acc.name, label: ch, name: acc.name, g: acc.g };
+  if (LETTER[up]) { const l = LETTER[up]; return { say: up, label: up, name: l[1], g: l[2] }; }
+  if (ch === "-") return { say: "trait d'union", label: "-", name: "trait d'union", g: "treh dew-NYON" };
+  if (ch === "'" || ch === "’") return { say: "apostrophe", label: "'", name: "apostrophe", g: "a-pos-TROF" };
+  return null;
+}
+const spellPieces = (word) => Array.from(word).map(spellPiece).filter(Boolean);
+
+const Sounds = {
+  sub: "alphabet",
+  render() {
+    const v = $("#v-sounds");
+    v.innerHTML = `<div class="view-head"><span class="label">Unité 1 · Épeler</span><h2>L'alphabet et les sons</h2></div>` +
+      seg("snd-sub", [["alphabet", "Alphabet"], ["accents", "Accents"], ["quiz", "Quiz"], ["name", "Spell my name"], ["rules", "Sound rules"]], this.sub) +
+      `<div id="snd-body" class="stack"></div>`;
+    bindSeg(v, "snd-sub", (val) => { this.sub = val; this.body(); });
+    this.body();
+  },
+  body() {
+    const b = $("#snd-body");
+    ({ alphabet: () => this.alphabetUI(b), accents: () => this.accentsUI(b), quiz: () => AlphaQuiz.ui(b), name: () => this.nameUI(b), rules: () => this.rulesUI(b) })[this.sub]();
+  },
+  letterItem(l, withNote) {
+    return item({ fr: `${l[0]}  ·  ${l[1]}`, say: l[0], g: l[2], en: withNote ? l[3] : "" });
+  },
+  alphabetUI(b) {
+    b.innerHTML = `<div class="card margin"><h3>Watch out: letters English speakers mix up</h3>` +
+      `<div class="row"><button class="btn" data-say-list="E|I" data-rate="0.8">${ICON.play} E vs I</button><button class="btn" data-say-list="G|J" data-rate="0.8">${ICON.play} G vs J</button></div>` +
+      `<div class="list">${TRICKY.map((k) => this.letterItem(LETTER[k], true)).join("")}</div></div>` +
+      `<div class="card"><div class="row" style="justify-content:space-between"><h3>All 26 letters</h3>${playListBtn(LETTERS.map((l) => l[0]), "the whole alphabet", false, 0.9)}</div>` +
+      `<div class="list">${LETTERS.map((l) => this.letterItem(l, false)).join("")}</div></div>` +
+      `<div class="card"><h3>Useful words for spelling</h3><div class="list">${SPELL_EXTRAS.map((x) => item(x)).join("")}</div></div>`;
+  },
+  accentsUI(b) {
+    b.innerHTML = `<div class="card"><p>Accents are part of the spelling. When you spell a word aloud, say the letter, then the accent: <i>é</i> = “e accent aigu”.</p></div>` +
+      ACCENTS.map((a) => `<div class="card"><div class="row" style="gap:14px;align-items:center"><span class="fr" style="font-size:2.2rem;min-width:44px;text-align:center">${a.ch}</span>` +
+        `<div style="flex:1;min-width:0">${item({ fr: a.name, g: a.g, en: "Sound: " + a.sound })}</div></div>` +
+        item({ fr: a.ex[0], g: a.ex[1], en: a.ex[2] }) + `</div>`).join("");
+  },
+  nameUI(b) {
+    b.innerHTML = `<div class="card"><div class="field"><label for="spell-in">Type a name or word</label><input id="spell-in" value="AIYAN" autocomplete="off" autocapitalize="characters"></div>` +
+      `<div id="spell-out" class="stack"></div><p class="small muted">To spell your name in class: <i>Ça s'écrit A, I, Y, A, N.</i></p></div>`;
+    const inp = $("#spell-in"), out = $("#spell-out");
+    const draw = () => {
+      const ps = spellPieces(inp.value.trim());
+      if (!ps.length) { out.innerHTML = `<p class="muted">Type letters to see how to spell them.</p>`; return; }
+      out.innerHTML = `<div class="row" style="gap:12px">${playListBtn(ps.map((p) => p.say), "the spelling", true, 0.85)}<div style="flex:1;min-width:0"><div class="fr big" style="letter-spacing:.08em">${esc(ps.map((p) => p.label).join(" "))}</div>` +
+        `<div class="guide">${esc(ps.map((p) => p.g).join(", "))}</div></div></div>` +
+        `<div class="list">${ps.map((p) => item({ fr: `${p.label}  ·  ${p.name}`, say: p.say, g: p.g })).join("")}</div>`;
+    };
+    inp.addEventListener("input", draw);
+    draw();
+  },
+  rulesUI(b) {
+    b.innerHTML = `<div class="card"><p>French spelling is regular once you know the patterns. Tap a rule, then tap the examples to hear them.</p></div>` +
+      SOUND_RULES.map(([t, ex, list], i) => `<details class="card" ${i === 0 ? "open" : ""}><summary style="min-height:28px;font-weight:700;cursor:pointer">${esc(t)}</summary>` +
+        (ex ? `<p class="small">${esc(ex)}</p>` : "") + `<div class="list">${list.map(([fr, g, en]) => item({ fr, g, en, say: fr.replace(/ \/ /g, ", ") })).join("")}</div></details>`).join("");
+  },
+};
+App.register("sounds", Sounds);
+
+const CONFUSE = { E: ["I", "U", "A"], I: ["E", "Y", "J"], G: ["J", "Q", "C"], J: ["G", "I", "Y"], U: ["O", "Q", "E"], Q: ["U", "K", "C"], R: ["E", "A", "H"],
+  H: ["A", "R", "C"], W: ["V", "U", "Y"], Y: ["I", "E", "J"], B: ["P", "V", "D"], P: ["B", "T", "D"], V: ["W", "B", "F"], C: ["S", "G", "K"], K: ["Q", "C", "A"] };
+const AlphaQuiz = {
+  kind: "letter", q: null, answered: false, streak: 0,
+  ui(b) {
+    b.innerHTML = `<div class="card">${seg("aq-kind", [["letter", "Hear a letter"], ["word", "Hear a spelled word"]], this.kind)}<div id="aq-q" class="stack"></div>` +
+      `<div class="stats" id="aq-stats"></div></div><p class="small muted" id="snd-more-wrap"></p>`;
+    bindSeg(b, "aq-kind", (k) => { this.kind = k; this.next(false); });
+    this.next(false);
+    if (Claude.sample) Coach.morePracticeButton($("#snd-more-wrap"), "sounds");
+  },
+  stats() {
+    const el = $("#aq-stats"); if (!el) return;
+    el.innerHTML = `<div class="stat"><b>${S.alpha.right}/${S.alpha.played}</b><span>All time</span></div><div class="stat"><b>${this.streak}</b><span>Streak</span></div><div class="stat"><b>${S.alpha.best}</b><span>Best</span></div>`;
+  },
+  next(autoplay) {
+    this.answered = false;
+    const el = $("#aq-q"); if (!el) return;
+    if (this.kind === "letter") {
+      const useTricky = Math.random() < 0.6;
+      const L = useTricky ? pick(Object.keys(CONFUSE)) : pick(LETTERS)[0];
+      const pool = shuffle((CONFUSE[L] || []).concat(shuffle(LETTERS.map((l) => l[0]).filter((x) => x !== L)).slice(0, 3)));
+      const opts = shuffle([L, ...[...new Set(pool)].filter((x) => x !== L).slice(0, 3)]);
+      this.q = { L };
+      el.innerHTML = `<div class="q-prompt">${playBtn(L, "the letter", true)}<span class="small muted">Tap to hear the letter, then pick it.</span></div>` +
+        `<div class="opts" style="grid-template-columns:repeat(4,minmax(0,1fr))" id="aq-opts">${opts.map((x) => `<button class="opt" style="align-items:center;font-size:1.6rem;font-weight:700" data-l="${x}">${x}</button>`).join("")}</div><div id="aq-fb"></div>`;
+      $("#aq-opts").addEventListener("click", (e) => { const o = e.target.closest(".opt"); if (o && !this.answered) this.checkLetter(o); });
+      if (autoplay) Speech.say(L);
+    } else {
+      const w = pick(SPELL_WORDS);
+      this.q = { w, pieces: spellPieces(w[0]) };
+      el.innerHTML = `<div class="q-prompt">${playListBtn(this.q.pieces.map((p) => p.say), "the spelled word", true, 0.85)}<span class="small muted">A word is spelled letter by letter. Type it.</span></div>` +
+        `<form id="aq-form" class="row" autocomplete="off"><input id="aq-in" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="The word" style="flex:1 1 160px"><button class="btn primary wide" type="submit">Check</button></form><div id="aq-fb"></div>`;
+      $("#aq-form").addEventListener("submit", (e) => { e.preventDefault(); this.checkWord(); });
+      if (autoplay) Speech.sayList(this.q.pieces.map((p) => p.say), $("#aq-q .play"), 0.85);
+    }
+    this.stats();
+  },
+  record(ok) {
+    S.alpha.played++; if (ok) S.alpha.right++;
+    this.streak = ok ? this.streak + 1 : 0;
+    if (this.streak > S.alpha.best) S.alpha.best = this.streak;
+    markDaily("alpha"); this.stats();
+  },
+  nextBtn(id) { return `<div class="row" style="margin-top:12px"><button class="btn primary wide" id="${id}">Next</button></div>`; },
+  checkLetter(btn) {
+    this.answered = true;
+    const L = this.q.L, ok = btn.dataset.l === L, l = LETTER[L];
+    $$("#aq-opts .opt").forEach((o) => { if (o.dataset.l === L) o.classList.add("right"); else if (o === btn) o.classList.add("wrong"); o.disabled = true; });
+    this.record(ok);
+    $("#aq-fb").innerHTML = feedback(ok, ok ? "Correct" : `It was ${L}`, { fr: `${L}  ·  ${l[1]}`, say: L, g: l[2], en: l[3] || "" }) + this.nextBtn("aq-next");
+    $("#aq-next").addEventListener("click", () => this.next(true));
+  },
+  checkWord() {
+    if (this.answered) return this.next(true);
+    const val = $("#aq-in").value; if (!val.trim()) return;
+    this.answered = true;
+    const [fr, g, en] = this.q.w, ok = normalize(val) === normalize(fr);
+    this.record(ok);
+    $("#aq-fb").innerHTML = feedback(ok, ok ? "Correct" : `It was “${fr}”`, { fr, g, en,
+      after: `<div class="small" style="margin-top:4px">${esc(this.q.pieces.map((p) => p.label).join(" "))}</div><div class="guide">${esc(this.q.pieces.map((p) => p.g).join(", "))}</div>` }) + this.nextBtn("aq-next");
+    $("#aq-next").addEventListener("click", () => this.next(true));
   },
 };
 
