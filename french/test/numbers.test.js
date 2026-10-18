@@ -72,5 +72,40 @@ for (let n = 0; n <= 2000; n++) {
 }
 check("0–2000 sweep", bad, 0);
 
+
+// Telling the time
+const T = (h, m, st) => FR.timeFrench(h, m, st);
+const TIMES = [
+  [14, 30, "24", "Il est quatorze heures trente.", "ee-leh ka-tor-zuhr TRAHNT"],
+  [1, 0, "24", "Il est une heure.", "ee-leh-tew-NUHR"],
+  [0, 0, "24", "Il est zéro heure.", "ee-leh zay-roh UHR"],
+  [21, 1, "24", "Il est vingt et une heures une.", "ee-leh vant ay ew-nuhr EWN"],
+  [9, 5, "24", "Il est neuf heures cinq.", "ee-leh nuh-vuhr SANK"],
+  [2, 30, "day", "Il est deux heures et demie du matin.", "ee-leh duh-zuhr ay duh-mee dew ma-TAN"],
+  [12, 30, "day", "Il est midi et demi.", "ee-leh mee-dee ay duh-MEE"],
+  [11, 45, "day", "Il est midi moins le quart.", "ee-leh mee-dee mwan luh KAR"],
+  [14, 45, "day", "Il est trois heures moins le quart de l'après-midi.", "ee-leh trwah-zuhr mwan luh kar duh la-preh mee-DEE"],
+  [23, 50, "day", "Il est minuit moins dix.", "ee-leh mee-nwee mwan DEES"],
+  [17, 40, "day", "Il est six heures moins vingt du soir.", "ee-leh see-zuhr mwan van dew SWAHR"],
+  [13, 0, "day", "Il est une heure de l'après-midi.", "ee-leh-tew-nuhr duh la-preh mee-DEE"],
+  [8, 15, "day", "Il est huit heures et quart du matin.", "ee-leh wee-tuhr ay kar dew ma-TAN"],
+  [0, 20, "day", "Il est minuit vingt.", "ee-leh mee-nwee VAN"],
+  [6, 55, "day", "Il est sept heures moins cinq du matin.", "ee-leh se-tuhr mwan sank dew ma-TAN"],
+];
+for (const [h, m, st, fr, g] of TIMES) { const r = T(h, m, st); check(`time ${h}:${m} ${st}`, r.fr, fr); check(`time guide ${h}:${m} ${st}`, r.g, g); }
+
+// Dates
+const DATES = [
+  [[18, 9, 2026], "le dix-huit octobre deux mille vingt-six", "le 18 octobre 2026", "luh deez weet ok-to-bruh duh meel vant SEES"],
+  [[1, 0, 2027], "le premier janvier deux mille vingt-sept", "le 1er janvier 2027", "luh pruh-myay zhahn-vyay duh meel vant SET"],
+  [[6, 3], "le six avril", "le 6 avril", "luh seez a-VREEL"],
+  [[10, 7], "le dix août", "le 10 août", "luh deez OOT"],
+  [[21, 4], "le vingt et un mai", "le 21 mai", "luh vant ay uhn MEH"],
+  [[3, 11, 1998], "le trois décembre mille neuf cent quatre-vingt-dix-huit", "le 3 décembre 1998", "luh trwah day-sahn-bruh meel nuhf sahn kat-ruh van deez WEET"],
+];
+for (const [[d, mo, y], fr, text, g] of DATES) { const r = FR.dateFrench(d, mo, y); check(`date ${text} fr`, r.fr, fr); check(`date ${text} text`, r.text, text); check(`date ${text} guide`, r.g, g); }
+check("date with weekday", FR.dateFrench(15, 9, null, 4).text, "jeudi 15 octobre");
+check("date with weekday guide", FR.dateFrench(15, 9, null, 4).g, "zhuh-dee kanz ok-TO-bruh");
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

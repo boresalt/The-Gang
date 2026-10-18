@@ -72,3 +72,26 @@ Choices made overnight without asking. Each one is easy to reverse.
   sits above the level/mode settings and scrolls itself into view when it doesn't fit. After
   checking, a Next button replaces the keypad in the same place. A hardware keyboard still works
   (digits, Backspace, Enter).
+
+## Round 2 (you chose: GitHub web page for friends; être/avoir drill + gap-fill; both time styles; possessives, jobs talk, family-tree quiz)
+- **Numbers no longer repeat.** Levels up to 100 deal every number once before repeating
+  (a shuffled deck). Bigger levels avoid the last 40 numbers and weight endings towards
+  70–99, "et un", teens and round tens. A number you miss comes back about every 3–5
+  questions, marked "Review", until you get it right (up to 15 kept per level).
+- **Where the new practice lives** (to keep the bottom bar to 8 tabs):
+  Numbers → Time and Dates; Moi → Family and Jobs (Nationalities and Places merged into
+  "Countries"); a new Verbs tab for être/avoir.
+- **Time:** everyday style adds du matin / de l'après-midi / du soir so a heard time has one
+  answer; when you type a heard everyday time, 2:30 and 14:30 both count. Midi/minuit take
+  "et demi". 24-hour style says the minutes as a number (no quart/demie).
+- **Dates:** written day/month/year as in France; the 1st is "le premier". Years 1900–2030,
+  weighted to 1950–2030.
+- **Family:** possessive agrees with the noun (sa mère = his or her mother); mon/ton/son before
+  a feminine noun with a vowel (mon amie). notre/votre/leur shown for reference only.
+- **Jobs:** no article after être (je suis ingénieur). Your job is a new optional profile field;
+  it adds "Je suis …" to your introduction and a "Qu'est-ce que tu fais dans la vie ?"
+  question to the speaking drill.
+- **Friends' version** is built from the same file by `build-public.js` into `/francais/` and
+  served by GitHub Pages from `main` (already on for this repo). It uses "Camille" as the
+  example name until a friend types theirs; nothing personal is included. It goes live when
+  this branch is merged.

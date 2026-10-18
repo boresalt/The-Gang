@@ -89,6 +89,53 @@ async function functional(p, problems) {
   await p.click('#uu-q [data-a="une"]');
   const fbs = await p.$$eval("#uu-fb .fb", (x) => x.length);
   if (fbs !== 1) fail("un/une: expected one feedback block, got " + fbs);
+
+  // Numbers: the 0–20 level deals all 21 numbers before any repeat.
+  await p.click('[data-tab="numbers"]');
+  await p.click('#v-numbers [data-seg="num-sub"] button[data-val="drill"]');
+  const seen = await p.evaluate(() => { S.num.level = "l0_20"; S.num.missed = {}; Numbers.bags = {}; const out = []; for (let i = 0; i < 21; i++) { Numbers.next(false); out.push(Numbers.q.n); } S.num.level = "l0_100"; return out; });
+  if (new Set(seen).size !== 21) fail("numbers 0–20 repeated before using all numbers: " + seen.join(","));
+  // A missed number comes back for review.
+  const back = await p.evaluate(() => { S.num.missed = { l0_100: [77] }; Numbers.sinceReview = 5; let hit = false; for (let i = 0; i < 40 && !hit; i++) { Numbers.sinceReview = 5; Numbers.next(false); hit = Numbers.q.n === 77 && Numbers.q.review; } return hit; });
+  if (!back) fail("missed number never came back for review");
+  // Each new multiple-choice quiz: answer correctly, see feedback, go next.
+  const mcqCheck = async (label, prefix) => {
+    await p.click(`#${prefix}-opts .opt[data-ok]`);
+    if (!(await p.isVisible(`#${prefix}-fb .fb.ok`))) fail(label + ": correct answer not marked correct");
+    await p.click(`#${prefix}-next`);
+    if (!(await p.isVisible(`#${prefix}-opts .opt`))) fail(label + ": no next question");
+  };
+  await p.click('#v-numbers [data-seg="num-sub"] button[data-val="time"]');
+  await mcqCheck("time read", "tm");
+  await p.click('[data-seg="tm-mode"] button[data-val="listen"]');
+  const tq = await p.evaluate(() => TimeView.q);
+  await typeKeys(p, "tm", String(tq.h) + String(tq.m).padStart(2, "0"));
+  if (!(await p.isVisible("#tm-fb .fb.ok"))) fail("time listen: correct time not accepted");
+  await p.click('[data-seg="tm-mode"] button[data-val="read"]');
+  await p.click('#v-numbers [data-seg="num-sub"] button[data-val="dates"]');
+  await mcqCheck("dates read", "dt");
+  await p.click('[data-seg="dt-mode"] button[data-val="listen"]');
+  await mcqCheck("dates listen", "dt");
+  await p.click('[data-seg="dt-mode"] button[data-val="year"]');
+  await typeKeys(p, "dt", String(await p.evaluate(() => DatesView.q.y)));
+  if (!(await p.isVisible("#dt-fb .fb.ok"))) fail("year: correct year not accepted");
+  await p.click('[data-seg="dt-mode"] button[data-val="read"]');
+  await p.click('[data-tab="verbs"]');
+  for (const sub of ["drill", "gap"]) {
+    await p.click(`#v-verbs [data-seg="vb-sub"] button[data-val="${sub}"]`);
+    await mcqCheck("verbs " + sub, "vb");
+  }
+  await p.click('#v-verbs [data-seg="vb-sub"] button[data-val="drill"]');
+  await p.click('[data-seg="vb-mode"] button[data-val="listen"]');
+  await mcqCheck("verbs listen", "vb");
+  await p.click('[data-tab="me"]');
+  await p.click('#v-me [data-seg="me-sub"] button[data-val="family"]');
+  for (const sub of ["poss", "tree"]) { await p.click(`[data-seg="fam-sub"] button[data-val="${sub}"]`); await mcqCheck("family " + sub, "fam"); }
+  await p.click('#v-me [data-seg="me-sub"] button[data-val="jobs"]');
+  await p.click('[data-seg="job-sub"] button[data-val="quiz"]');
+  await mcqCheck("jobs quiz", "job");
+  const verbStats = await p.evaluate(() => S.quiz.verbs && S.quiz.verbs.right);
+  if (verbStats !== 3) fail("verb quiz results not recorded: " + verbStats);
   // Alphabet quiz: picking the right letter is marked correct.
   await p.click('[data-tab="sounds"]');
   await p.click('#v-sounds [data-seg="snd-sub"] button[data-val="quiz"]');

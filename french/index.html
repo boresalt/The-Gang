@@ -97,6 +97,7 @@ textarea{min-height:96px;resize:vertical}
 .keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .key{min-height:48px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--card);font-size:1.45rem;font-weight:700;font-variant-numeric:tabular-nums;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .key:active{background:var(--chip)}
+.next-btn{min-height:52px;scroll-margin-bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px))}
 .key.ok-key{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:1.05rem}
 .key.del-key{font-size:1.1rem}
 .answer{font-size:1.5rem;font-variant-numeric:tabular-nums;letter-spacing:.04em;text-align:center}
@@ -168,6 +169,8 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card
 .tabs button[aria-current="page"]{color:var(--accent)}
 .tabs button[aria-current="page"] svg{stroke-width:2.4}
 .tabs-in:has(> button:nth-child(7):not(.hidden-claude)) button{font-size:.62rem;letter-spacing:-.01em}
+.tabs-in:has(> button:nth-child(8):not(.hidden-claude)) button{font-size:.58rem;letter-spacing:-.02em}
+.tabs-in:has(> button:nth-child(8):not(.hidden-claude)) button svg{width:20px;height:20px}
 .tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 .gender-m{color:var(--masc)} .gender-f{color:var(--fem)} .gender-p{color:var(--plural)}
@@ -196,6 +199,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card
   <section class="view" id="v-numbers" data-view="numbers" hidden></section>
   <section class="view" id="v-sounds" data-view="sounds" hidden></section>
   <section class="view" id="v-me" data-view="me" hidden></section>
+  <section class="view" id="v-verbs" data-view="verbs" hidden></section>
   <section class="view" id="v-class" data-view="class" hidden></section>
   <section class="view" id="v-phrases" data-view="phrases" hidden></section>
   <section class="view" id="v-coach" data-view="coach" hidden></section>
@@ -207,6 +211,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card
     <button data-tab="numbers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg><span>Numbers</span></button>
     <button data-tab="sounds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 9 5l5 14M5.8 14h6.4"/><path d="M17 9v10M17 9c1.5 0 3 1 3 2.5S18.5 14 17 14"/></svg><span>Sounds</span></button>
     <button data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span>Moi</span></button>
+    <button data-tab="verbs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 14l3 3-3 3"/></svg><span>Verbs</span></button>
     <button data-tab="class"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h11a3 3 0 0 1 3 3v12H7a3 3 0 0 1-3-3z"/><path d="M4 17a3 3 0 0 1 3-3h11"/></svg><span>Class</span></button>
     <button data-tab="phrases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4z"/></svg><span>Phrases</span></button>
     <button data-tab="coach" class="hidden-claude" id="tab-coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/></svg><span>Coach</span></button>
@@ -253,19 +258,23 @@ var FR = (function () {
   // A word is a list of syllables. A syllable starting with "~" is a weak release
   // ("ruh") that is never the stressed syllable.
   var DIGIT_WORDS = {un:1,deux:1,trois:1,quatre:1,cinq:1,six:1,sept:1,huit:1,neuf:1};
+  // Months that start with a vowel make the number before them link (six avril = seez, dix octobre = deez).
+  var VOWEL_NEXT = {avril:1,"août":1,octobre:1};
   function wordSyl(w, prev, next) {
+    var nv = !!VOWEL_NEXT[next];
     switch (w) {
+      case "une": return ["ewn"];
       case "zéro": return ["zay","roh"];
       case "un": return ["uhn"];
-      case "deux": return ["duh"];
-      case "trois": return ["trwah"];
+      case "deux": return [nv ? "duhz" : "duh"];
+      case "trois": return [nv ? "trwahz" : "trwah"];
       case "quatre": return ["kat","~ruh"];
       case "cinq": return ["sank"];
-      case "six": return [next ? "see" : "sees"];
+      case "six": return [nv ? "seez" : next ? "see" : "sees"];
       case "sept": return ["set"];
-      case "huit": return [next ? "wee" : "weet"];
+      case "huit": return [nv ? "weet" : next ? "wee" : "weet"];
       case "neuf": return ["nuhf"];
-      case "dix": return [next === "huit" || next === "neuf" ? "deez" : next ? "dee" : "dees"];
+      case "dix": return [nv || next === "huit" || next === "neuf" ? "deez" : next ? "dee" : "dees"];
       case "onze": return ["onz"];
       case "douze": return ["dooz"];
       case "treize": return ["trez"];
@@ -274,7 +283,7 @@ var FR = (function () {
       case "seize": return ["sez"];
       case "vingt":
         if (prev === "quatre") return ["van"];
-        return [next === "et" || DIGIT_WORDS[next] ? "vant" : "van"];
+        return [nv || next === "et" || DIGIT_WORDS[next] ? "vant" : "van"];
       case "vingts": return ["van"];
       case "trente": return ["trahnt"];
       case "quarante": return ["ka","rahnt"];
@@ -288,9 +297,9 @@ var FR = (function () {
     return [w];
   }
   function words(fr) { return fr.split(/[\s-]+/).filter(Boolean); }
-  function sylWords(fr) {
+  function sylWords(fr, after) {
     var ws = words(fr);
-    return ws.map(function (w, i) { return wordSyl(w, ws[i - 1] || null, ws[i + 1] || null); });
+    return ws.map(function (w, i) { return wordSyl(w, ws[i - 1] || null, ws[i + 1] || after || null); });
   }
   // Capitalise the last non-release syllable, then join syllables with "-" and words with " ".
   function render(sw) {
@@ -312,11 +321,66 @@ var FR = (function () {
     vingt:[["van"],"t"],vingts:[["van"],"z"],trente:[["trahn"],"t"],quarante:[["ka","rahn"],"t"],cinquante:[["san","kahn"],"t"],
     soixante:[["swa","sahn"],"t"],cent:[["sahn"],"t"],cents:[["sahn"],"z"],mille:[["mee"],"l"]};
   function agePhrase(n) { return toFrench(n) + (n === 1 ? " an" : " ans"); }
-  function ageGuide(n) {
-    var fr = toFrench(n), ws = words(fr), sw = sylWords(fr), last = ws[ws.length - 1], L = LIAISON[last];
-    if (L) sw[sw.length - 1] = L[0].concat([L[1] + "ahn"]);
-    else sw.push(["ahn"]);
-    return render(sw);
+  LIAISON.une = [["ew"],"n"];
+  // Syllables for a number followed by a word starting with a vowel sound (ans, heures).
+  function linked(fr, vowelSyl) {
+    var ws = words(fr), sw = sylWords(fr), last = ws[ws.length - 1], L = LIAISON[last];
+    if (L) sw[sw.length - 1] = L[0].concat([L[1] + vowelSyl]);
+    else sw.push([vowelSyl]);
+    return sw;
+  }
+  function ageGuide(n) { return render(linked(toFrench(n), "ahn")); }
+
+  // ---- Telling the time ----
+  // style "day": everyday 12-hour (et quart, et demie, moins le quart, midi, minuit, du matin…)
+  // style "24": timetable style (quatorze heures trente)
+  var fem = function (fr) { return fr.replace(/\bun$/, "une"); };
+  function hourPart(h) { // h = 0..23 as a number of hours, for "… heure(s)"
+    var fr = h === 0 ? "zéro" : fem(toFrench(h));
+    var sw = h === 0 ? [["zay","roh"],["uhr"]] : linked(fr, "uhr");
+    return { fr: fr + (h <= 1 ? " heure" : " heures"), sw: sw };
+  }
+  function timeFrench(h, m, style) {
+    var parts = [], sw = [], H = h, one = false;
+    if (style === "24") {
+      var hp = hourPart(h); parts.push(hp.fr); sw = sw.concat(hp.sw); one = h === 1;
+      if (m) { var mf = fem(toFrench(m)); parts.push(mf); sw = sw.concat(sylWords(mf)); }
+    } else {
+      var minFr = "", minSw = [];
+      if (m > 30) { H = (h + 1) % 24; var left = 60 - m;
+        if (left === 15) { minFr = "moins le quart"; minSw = [["mwan"],["luh"],["kar"]]; }
+        else { var lf = fem(toFrench(left)); minFr = "moins " + lf; minSw = [["mwan"]].concat(sylWords(lf)); } }
+      else if (m === 15) { minFr = "et quart"; minSw = [["ay"],["kar"]]; }
+      else if (m === 30) { minFr = (H % 12 === 0 ? "et demi" : "et demie"); minSw = [["ay"],["duh","mee"]]; }
+      else if (m) { minFr = fem(toFrench(m)); minSw = sylWords(minFr); }
+      if (H === 12) { parts.push("midi"); sw.push(["mee","dee"]); }
+      else if (H === 0) { parts.push("minuit"); sw.push(["mee","nwee"]); }
+      else { var hp2 = hourPart(H % 12 || 12); parts.push(hp2.fr); sw = sw.concat(hp2.sw); one = H % 12 === 1; }
+      if (minFr) { parts.push(minFr); sw = sw.concat(minSw); }
+      if (H >= 1 && H <= 11) { parts.push("du matin"); sw.push(["dew"], ["ma","tan"]); }
+      else if (H >= 13 && H <= 17) { parts.push("de l'après-midi"); sw.push(["duh"], ["la","preh"], ["mee","dee"]); }
+      else if (H >= 18) { parts.push("du soir"); sw.push(["dew"], ["swahr"]); }
+    }
+    // "Il est une heure" links: ee-leh-tew-NUHR
+    if (one) { var first = sw.shift(); sw.unshift(["ee","leh","t" + first[0]].concat(first.slice(1))); }
+    else sw.unshift(["ee","leh"]);
+    return { fr: "Il est " + parts.join(" ") + ".", g: render(sw) };
+  }
+
+  // ---- Dates ----
+  var MONTHS = [["janvier",["zhahn","vyay"]],["février",["fay","vree","yay"]],["mars",["mars"]],["avril",["a","vreel"]],["mai",["meh"]],["juin",["zhwan"]],
+    ["juillet",["zhwee","yeh"]],["août",["oot"]],["septembre",["sep","tahn","~bruh"]],["octobre",["ok","to","~bruh"]],["novembre",["no","vahn","~bruh"]],["décembre",["day","sahn","~bruh"]]];
+  var DAYS = [["dimanche",["dee","mahnsh"]],["lundi",["luhn","dee"]],["mardi",["mar","dee"]],["mercredi",["mehr","kruh","dee"]],["jeudi",["zhuh","dee"]],["vendredi",["vahn","druh","dee"]],["samedi",["sam","dee"]]];
+  // d = 1..31, mo = 0..11, y optional, wd = weekday 0..6 optional (then no "le").
+  function dateFrench(d, mo, y, wd) {
+    var M = MONTHS[mo], sw = [], spoken = [], shown = [];
+    if (wd != null) { sw.push(DAYS[wd][1].slice()); spoken.push(DAYS[wd][0]); shown.push(DAYS[wd][0]); }
+    else { sw.push(["luh"]); spoken.push("le"); shown.push("le"); }
+    if (d === 1) { sw.push(["pruh","myay"]); spoken.push("premier"); shown.push("1er"); }
+    else { var df = toFrench(d); sw = sw.concat(sylWords(df, M[0])); spoken.push(df); shown.push(String(d)); }
+    sw.push(M[1].slice()); spoken.push(M[0]); shown.push(M[0]);
+    if (y) { var yf = toFrench(y); sw = sw.concat(sylWords(yf)); spoken.push(yf); shown.push(String(y)); }
+    return { fr: spoken.join(" "), text: shown.join(" "), g: render(sw) };
   }
 
   // Phone numbers, read in pairs. A pair starting with 0 is "zéro" + digit.
@@ -335,7 +399,7 @@ var FR = (function () {
   function formatDigits(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
 
   return { toFrench: toFrench, numberGuide: numberGuide, guideFor: guideFor, agePhrase: agePhrase, ageGuide: ageGuide,
-    phoneFrench: phoneFrench, phoneGuide: phoneGuide, splitPairs: splitPairs, formatDigits: formatDigits, UNITS: UNITS };
+    phoneFrench: phoneFrench, phoneGuide: phoneGuide, timeFrench: timeFrench, dateFrench: dateFrench, MONTHS: MONTHS, DAYS: DAYS, splitPairs: splitPairs, formatDigits: formatDigits, UNITS: UNITS };
 })();
 if (typeof module !== "undefined") module.exports = FR;
 </script>
@@ -360,16 +424,21 @@ const ICON = {
 // What the voice should read for a written form: drop "(e)" endings, ellipses and brackets.
 const sayable = (s) => String(s).replace(/\((e|ne|le|se)\)/g, "").replace(/…/g, "").replace(/[«»]/g, "").replace(/\s+/g, " ").trim();
 
+/* ---------- Public build (GitHub Pages, for friends): no personal defaults ---------- */
+const PUBLIC = !!window.CAHIER_PUBLIC;
+const DEFAULT_NAME = PUBLIC ? "Camille" : "Aiyan";
+
 /* ---------- State: localStorage cache + artifact db when available ---------- */
 const KEY = "cahier-fr-v1";
 const DEFAULT_STATE = () => ({
   v: 1, updatedAt: 0, tab: "today",
   settings: { guide: true, slow: false },
-  num: { level: "l0_100", mode: "listen", best: {}, played: {}, right: {} },
+  num: { level: "l0_100", mode: "listen", best: {}, played: {}, right: {}, missed: {} },
   phone: { best: 0 },
   alpha: { best: 0, right: 0, played: 0 },
-  profile: { name: "Aiyan", gender: "", nat: "singapourien", city: "Singapour", age: 30, langs: ["anglais", "chinois"], frPeu: true, phone: "91234567" },
+  profile: { name: PUBLIC ? "" : "Aiyan", gender: "", nat: "singapourien", city: "Singapour", age: 30, langs: ["anglais", "chinois"], frPeu: true, phone: "91234567", job: "" },
   me: { right: 0, played: 0 }, meHideText: false,
+  time: { style: "day", mode: "read" }, dates: { mode: "read" }, quiz: {},
   phrases: { learned: {}, open: 1, seen: {} },
   vocab: { known: {} },
   daily: {},
@@ -645,17 +714,29 @@ document.addEventListener("keydown", (e) => {
 /* ====================================================================
    SECTION 1 — NUMBERS
    ==================================================================== */
+// Varied 2-digit endings: extra weight on the tricky 70–99, on "et un" numbers, teens and round tens.
+function tail() {
+  const x = Math.random();
+  if (x < 0.3) return rand(70, 99);
+  if (x < 0.4) return pick([21, 31, 41, 51, 61, 71, 81, 91]);
+  if (x < 0.5) return rand(11, 19);
+  if (x < 0.6) return pick([0, 10, 20, 30, 40, 50, 60, 70, 80, 90]);
+  return rand(0, 99);
+}
+const hundredsPart = () => rand(0, 9) * 100 + tail();
 const LEVELS = [
-  { id: "l0_20", label: "0–20", gen: () => rand(0, 20) },
-  { id: "l21_69", label: "21–69", gen: () => rand(21, 69) },
-  { id: "l70_99", label: "70–99", gen: () => rand(70, 99), tricky: true },
-  { id: "l0_100", label: "0–100", gen: () => rand(0, 100) },
-  { id: "l100_999", label: "100–999", gen: () => (Math.random() < 0.3 ? rand(1, 9) * 100 + pick([0, 1, 20, 21, 70, 71, 80, 81, 90, 99]) : rand(100, 999)) },
-  { id: "lk", label: "Thousands", gen: () => { const k = rand(1, 99) * 1000, x = Math.random(); return k + (x < 0.35 ? 0 : x < 0.65 ? rand(1, 9) * 100 : rand(1, 999)); } },
+  { id: "l0_20", label: "0–20", lo: 0, hi: 20 },
+  { id: "l21_69", label: "21–69", lo: 21, hi: 69 },
+  { id: "l70_99", label: "70–99", lo: 70, hi: 99, tricky: true },
+  { id: "l0_100", label: "0–100", lo: 0, hi: 100 },
+  { id: "l100_999", label: "100–999", gen: () => rand(1, 9) * 100 + tail() },
+  { id: "lk", label: "Thousands", gen: () => { const x = Math.random(), k = x < 0.4 ? rand(70, 99) : x < 0.5 ? pick([1, 21, 71, 81]) : rand(1, 99);
+      return k * 1000 + (Math.random() < 0.3 ? 0 : hundredsPart()); } },
   { id: "l1m", label: "Up to 1 000 000", gen: () => { const x = Math.random();
-      return x < 0.05 ? 1000000 : x < 0.25 ? rand(100, 999) * 1000 : x < 0.6 ? rand(1, 999) * 1000 + rand(0, 9) * 100 : rand(1, 999999); } },
-  { id: "lm", label: "Millions", gen: () => { const m = rand(1, 999) * 1e6, x = Math.random();
-      return m + (x < 0.45 ? 0 : x < 0.75 ? rand(1, 9) * 100000 : rand(1, 999) * 1000); } },
+      if (x < 0.04) return 1000000;
+      const k = Math.max(1, hundredsPart()); return k * 1000 + (x < 0.3 ? 0 : hundredsPart()); } },
+  { id: "lm", label: "Millions", gen: () => { const m = Math.max(1, hundredsPart()), x = Math.random();
+      return m * 1e6 + (x < 0.4 ? 0 : x < 0.7 ? rand(1, 9) * 100000 : Math.max(1, hundredsPart()) * 1000 + (Math.random() < 0.5 ? 0 : hundredsPart())); } },
 ];
 const LEVEL = (id) => LEVELS.find((l) => l.id === id) || LEVELS[3];
 const LEVEL_RANGE = { l0_20: [0, 20], l21_69: [21, 69], l70_99: [70, 99], l0_100: [0, 100], l100_999: [100, 999], lk: [1000, 99999], l1m: [0, 1000000], lm: [1000000, 999999999] };
@@ -684,7 +765,7 @@ const Numbers = {
   render() {
     const v = $("#v-numbers");
     v.innerHTML = `<div class="view-head"><span class="label">Unité 1 · Compter</span><h2>Les nombres</h2></div>` +
-      seg("num-sub", [["drill", "Drill"], ["explore", "Explorer"], ["phone", "Phone"], ["cheat", "Cheat sheet"]], this.sub) +
+      seg("num-sub", [["drill", "Drill"], ["time", "Time"], ["dates", "Dates"], ["phone", "Phone"], ["explore", "Explorer"], ["cheat", "Cheat sheet"]], this.sub) +
       `<div id="num-body" class="stack"></div>`;
     bindSeg(v, "num-sub", (val) => { this.sub = val; this.body(); });
     this.body();
@@ -694,6 +775,8 @@ const Numbers = {
     if (this.sub === "drill") this.drillUI(b);
     else if (this.sub === "explore") this.exploreUI(b);
     else if (this.sub === "phone") Phone.ui(b);
+    else if (this.sub === "time") TimeView.ui(b);
+    else if (this.sub === "dates") DatesView.ui(b);
     else this.cheatUI(b);
   },
   /* ----- Drill ----- */
@@ -720,9 +803,33 @@ const Numbers = {
       `<div class="stat"><b>${this.session.streak}</b><span>Streak</span></div>` +
       `<div class="stat"><b>${S.num.best[id] || 0}</b><span>Best ${esc(LEVEL(id).label)}</span></div>`;
   },
+  recent: [], bags: {}, sinceReview: 0,
+  // Next number: missed ones come back every few questions; small levels deal every number once
+  // before repeating (a shuffled bag); big levels avoid the last 40 numbers.
+  pickNumber() {
+    const L = LEVEL(S.num.level), missed = S.num.missed[L.id] || [];
+    this.sinceReview++;
+    if (missed.length && this.sinceReview >= 3 && Math.random() < 0.4) {
+      const n = pick(missed.filter((x) => x !== (this.q && this.q.n)));
+      if (n != null) { this.sinceReview = 0; return { n, review: true }; }
+    }
+    let n;
+    if (L.gen) {
+      for (let i = 0; i < 40; i++) { n = L.gen(); if (!this.recent.includes(n)) break; }
+    } else {
+      let bag = this.bags[L.id];
+      if (!bag || !bag.length) {
+        bag = this.bags[L.id] = shuffle(Array.from({ length: L.hi - L.lo + 1 }, (_, i) => L.lo + i));
+        if (this.q && bag[bag.length - 1] === this.q.n) bag.unshift(bag.pop());
+      }
+      n = bag.pop();
+    }
+    this.recent.push(n); if (this.recent.length > 40) this.recent.shift();
+    return { n, review: false };
+  },
   next(autoplay) {
-    const n = LEVEL(S.num.level).gen();
-    this.q = { n, fr: FR.toFrench(n), g: FR.numberGuide(n), mode: S.num.mode };
+    const { n, review } = this.pickNumber();
+    this.q = { n, review, fr: FR.toFrench(n), g: FR.numberGuide(n), mode: S.num.mode };
     this.answered = false;
     this.drawQ();
     this.stats();
@@ -746,6 +853,7 @@ const Numbers = {
         `<button class="btn primary" id="num-reveal">Reveal</button>`;
     }
     const typed = q.mode === "listen" || q.mode === "read";
+    if (q.review) html = `<span class="tag p" style="align-self:center">Review · you missed this one before</span>` + html;
     el.innerHTML = html + (typed ? "" : `<div id="num-fb"></div>`);
     if (typed) this.kp = Keypad.bind("num", { max: 9, fmt: (v) => FR.formatDigits(v), onOk: (v) => this.checkTyped(v) });
     const opts = $("#num-opts", el);
@@ -760,6 +868,10 @@ const Numbers = {
     if (ok) { this.session.right++; this.session.streak++; S.num.right[id] = (S.num.right[id] || 0) + 1; }
     else this.session.streak = 0;
     if (this.session.streak > (S.num.best[id] || 0)) S.num.best[id] = this.session.streak;
+    // Remember misses so they come back; drop them once answered right.
+    const missed = (S.num.missed[id] || []).filter((x) => x !== this.q.n);
+    if (!ok) missed.push(this.q.n);
+    S.num.missed[id] = missed.slice(-15);
     markDaily("num");
     this.stats();
   },
@@ -1010,8 +1122,8 @@ const Sounds = {
         item({ fr: a.ex[0], g: a.ex[1], en: a.ex[2] }) + `</div>`).join("");
   },
   nameUI(b) {
-    b.innerHTML = `<div class="card"><div class="field"><label for="spell-in">Type a name or word</label><input id="spell-in" value="AIYAN" autocomplete="off" autocapitalize="characters"></div>` +
-      `<div id="spell-out" class="stack"></div><p class="small muted">To spell your name in class: <i>Ça s'écrit A, I, Y, A, N.</i></p></div>`;
+    b.innerHTML = `<div class="card"><div class="field"><label for="spell-in">Type a name or word</label><input id="spell-in" value="${esc((S.profile.name || DEFAULT_NAME).toUpperCase())}" autocomplete="off" autocapitalize="characters"></div>` +
+      `<div id="spell-out" class="stack"></div><p class="small muted">To spell your name in class: <i>Ça s'écrit</i> + the letters.</p></div>`;
     const inp = $("#spell-in"), out = $("#spell-out");
     const draw = () => {
       const ps = spellPieces(inp.value.trim());
@@ -1161,7 +1273,7 @@ const Profile = {
   g() { return this.p.gender; }, // "m", "f" or "" (not chosen yet)
   natFr() { const n = this.nat(); return this.g() === "f" ? n[1] : this.g() === "m" ? n[0] : n[0] === n[1] ? n[0] : `${n[0]} / ${n[1]}`; },
   natG() { const n = this.nat(); return this.g() === "f" ? n[3] : this.g() === "m" ? n[2] : n[2] === n[3] ? n[2] : `${n[2]} / ${n[3]}`; },
-  name() { return (this.p.name || "").trim() || "Aiyan"; },
+  name() { return (this.p.name || "").trim() || DEFAULT_NAME; },
   city() { return (this.p.city || "").trim() || "Singapour"; },
   cityG() { const c = CITIES.find((x) => x[0].toLowerCase() === this.city().toLowerCase()); return c ? c[1] : gjoin(["a", { raw: this.city() }]); },
   age() { const a = Math.round(+this.p.age); return a >= 1 && a <= 120 ? a : 30; },
@@ -1175,6 +1287,10 @@ const Profile = {
     const gp = []; items.forEach((x, i) => { if (i === items.length - 1 && i > 0) gp.push("ay"); gp.push(x[1]); });
     return { fr, g: gjoin(gp) };
   },
+  job() { return JOB[this.p.job] || null; },
+  jobFr() { const j = this.job() || JOB.etudiant; return this.g() === "f" ? j[2] : this.g() === "m" ? j[1] : j[1] === j[2] ? j[1] : `${j[1]} / ${j[2]}`; },
+  jobG() { const j = this.job() || JOB.etudiant; return this.g() === "f" ? j[4] : this.g() === "m" ? j[3] : j[3] === j[4] ? j[3] : `${j[3]} / ${j[4]}`; },
+  jobAns() { const j = this.job() || JOB.etudiant; return { fr: `Je suis ${this.jobFr()}.`, g: gjoin(["zhuh swee", this.jobG()]), en: `I'm ${/^[aeiou]/i.test(j[5]) ? "an" : "a"} ${j[5]}.`.replace("a retired", "retired") }; },
   phone() { const d = String(this.p.phone || "").replace(/\D/g, ""); return d.length >= 8 && d.length % 2 === 0 ? d : "91234567"; },
   email() { return normalize(this.name()) || "aiyan"; },
 };
@@ -1191,6 +1307,8 @@ const QUESTIONS = [
       note: `${a} ${a === 1 ? "an" : "ans"} = ${FR.agePhrase(a)}. French says “I have … years”: never “je suis 30”.` }]; } },
   { id: "langues", en: "Which languages do you speak?", tu: ["Tu parles quelles langues ?", "tew parl kel LAHNG"], vous: ["Vous parlez quelles langues ?", "voo par-lay kel LAHNG"],
     ans: () => { const l = Profile.langs(); return [{ fr: `Je parle ${l.fr}.`, g: gjoin(["zhuh parl", l.g]), en: "I speak " + l.fr.replace(/un peu français/, "a little French") + "." }]; } },
+  { id: "metier", en: "What do you do?", tu: ["Qu'est-ce que tu fais dans la vie ?", "kes-kuh tew feh dahn la VEE"], vous: ["Qu'est-ce que vous faites dans la vie ?", "kes-kuh voo fet dahn la VEE"],
+    ans: () => [{ ...Profile.jobAns(), note: "No “un” before a job after être: je suis ingénieur." }] },
   { id: "tel", en: "What's your phone number?", tu: ["Quel est ton numéro de téléphone ?", "kel eh ton new-may-roh duh tay-lay-FON"], vous: ["Quel est votre numéro de téléphone ?", "kel eh vo-truh new-may-roh duh tay-lay-FON"],
     ans: () => { const d = Profile.phone(), shown = d.length === 8 ? d.slice(0, 4) + " " + d.slice(4) : FR.splitPairs(d).join(" ");
       return [{ fr: `C'est le ${shown}.`, say: `C'est le ${FR.phoneFrench(d).join(", ")}.`, g: gjoin(["seh luh", FR.phoneGuide(d).join(", ")]), en: `It's ${shown}.`, note: "Say it in pairs: " + FR.phoneFrench(d).join(", ") + "." }]; } },
@@ -1209,7 +1327,7 @@ const Me = {
   render() {
     const v = $("#v-me");
     v.innerHTML = `<div class="view-head"><span class="label">Unité 2 · Se présenter</span><h2>Moi</h2></div>` +
-      seg("me-sub", [["questions", "Questions"], ["builder", "My introduction"], ["drill", "Speaking drill"], ["nats", "Nationalities"], ["places", "Places"]], this.sub) +
+      seg("me-sub", [["questions", "Questions"], ["builder", "My introduction"], ["drill", "Speaking drill"], ["countries", "Countries"], ["family", "Family"], ["jobs", "Jobs"]], this.sub) +
       `<div id="me-body" class="stack"></div>`;
     bindSeg(v, "me-sub", (val) => { this.sub = val; this.body(); });
     this.body();
@@ -1217,7 +1335,8 @@ const Me = {
   onShow() { this.body(); },
   body() {
     const b = $("#me-body");
-    ({ questions: () => this.questionsUI(b), builder: () => this.builderUI(b), drill: () => MeDrill.ui(b), nats: () => this.natsUI(b), places: () => this.placesUI(b) })[this.sub]();
+    ({ questions: () => this.questionsUI(b), builder: () => this.builderUI(b), drill: () => MeDrill.ui(b), family: () => FamilyView.ui(b), jobs: () => JobsView.ui(b),
+      countries: () => { this.natsUI(b); const top = b.innerHTML; this.placesUI(b); b.innerHTML = top + b.innerHTML; } })[this.sub]();
   },
   ansHTML(a) { return item({ fr: a.fr, say: a.say || a.fr, g: a.g, en: a.en, after: a.note ? `<div class="small muted" style="margin-top:4px">${esc(a.note)}</div>` : "" }); },
   questionsUI(b) {
@@ -1235,7 +1354,7 @@ const Me = {
     const p = S.profile;
     const cityKnown = CITIES.some((c) => c[0] === p.city);
     b.innerHTML = `<div class="card"><h3>About you</h3>
-      <div class="field"><label for="pf-name">Name</label><input id="pf-name" value="${esc(p.name)}" autocomplete="off"></div>
+      <div class="field"><label for="pf-name">Name</label><input id="pf-name" value="${esc(p.name)}" placeholder="Your first name" autocomplete="off"></div>
       <div class="field"><span class="label" id="pf-g-l">Masculine or feminine forms?</span><div class="chips" role="group" aria-labelledby="pf-g-l">
         <button class="chip" data-g="m" aria-pressed="${p.gender === "m"}">Masculine · je suis singapourien</button>
         <button class="chip" data-g="f" aria-pressed="${p.gender === "f"}">Feminine · je suis singapourienne</button></div>
@@ -1246,12 +1365,13 @@ const Me = {
       <div class="field"><label for="pf-age">Age</label><input id="pf-age" inputmode="numeric" value="${esc(p.age)}"></div>
       <div class="field"><span class="label">Languages you speak</span><div class="chips" id="pf-langs">${LANGS.map((l) => `<button class="chip" data-lang="${esc(l[0])}" aria-pressed="${(p.langs || []).includes(l[0])}">${esc(l[0])}</button>`).join("")}</div>
         <label class="row small" style="gap:8px;min-height:44px"><input type="checkbox" id="pf-peu" ${p.frPeu ? "checked" : ""} style="width:22px;height:22px;min-height:0"> Add “un peu français” (a little French)</label></div>
+      <div class="field"><label for="pf-job">Job</label><select id="pf-job"><option value="">Not set (uses étudiant / étudiante)</option>${JOBS.map((j) => `<option value="${j[0]}" ${p.job === j[0] ? "selected" : ""}>${esc(j[5])} · ${esc(j[1])}${j[2] !== j[1] ? " / " + esc(j[2]) : ""}</option>`).join("")}</select></div>
       <div class="field"><label for="pf-phone">Phone number for practice (digits)</label><input id="pf-phone" inputmode="numeric" value="${esc(p.phone)}"></div>
       </div><div class="card margin" id="pf-out"></div>`;
     const out = $("#pf-out");
     const lines = () => [
       { fr: "Bonjour !", g: "bon-ZHOOR", en: "Hello!" },
-      QUESTIONS[0].ans()[0], QUESTIONS[1].ans()[0], QUESTIONS[2].ans()[0], QUESTIONS[3].ans()[0], QUESTIONS[4].ans()[0],
+      QUESTIONS[0].ans()[0], QUESTIONS[1].ans()[0], QUESTIONS[2].ans()[0], QUESTIONS[3].ans()[0], ...(Profile.job() ? [Profile.jobAns()] : []), QUESTIONS[4].ans()[0],
       { fr: Profile.enchante(), g: "ahn-shahn-TAY", en: "Nice to meet you!" },
     ];
     const draw = () => {
@@ -1277,6 +1397,7 @@ const Me = {
       set("langs", LANGS.map((l) => l[0]).filter((x) => set2.has(x)));
     });
     $("#pf-peu").addEventListener("change", (e) => set("frPeu", e.target.checked));
+    $("#pf-job").addEventListener("change", (e) => set("job", e.target.value));
     $("#pf-phone").addEventListener("input", (e) => set("phone", e.target.value.replace(/\D/g, "")));
     draw();
   },
@@ -1628,17 +1749,7 @@ function todaysPhrases() {
   const un = open.filter((x) => !S.phrases.learned[x.id]);
   return (un.length >= 5 ? un : un.concat(open.filter((x) => S.phrases.learned[x.id]))).slice(0, 5);
 }
-// "jeudi 15 octobre" with its guide; the 1st is "premier" (1er).
-const DAYS_FR = [["dimanche", "dee-mahnsh"], ["lundi", "luhn-dee"], ["mardi", "mar-dee"], ["mercredi", "mehr-kruh-dee"], ["jeudi", "zhuh-dee"], ["vendredi", "vahn-druh-dee"], ["samedi", "sam-dee"]];
-const MONTHS_FR = [["janvier", "zhahn-VYAY"], ["février", "fay-vree-YAY"], ["mars", "MARS"], ["avril", "a-VREEL"], ["mai", "MEH"], ["juin", "ZHWAN"], ["juillet", "zhwee-YEH"],
-  ["août", "OOT"], ["septembre", "sep-TAHN-bruh"], ["octobre", "ok-TO-bruh"], ["novembre", "no-VAHN-bruh"], ["décembre", "day-SAHN-bruh"]];
-function frenchDate(d) {
-  const day = DAYS_FR[d.getDay()], mon = MONTHS_FR[d.getMonth()], n = d.getDate();
-  let numG = n === 1 ? "pruh-myay" : FR.numberGuide(n).toLowerCase();
-  const vowel = /^[aeiouéyh]/.test(mon[0]);
-  if (n !== 1) numG = numG.replace(/(sees|dees|weet)$/, (m) => vowel ? { sees: "seez", dees: "deez", weet: "weet" }[m] : { sees: "see", dees: "dee", weet: "wee" }[m]);
-  return { fr: `${day[0]} ${n === 1 ? "1er" : n} ${mon[0]}`, g: `noo som ${day[1]} ${numG} ${mon[1]}` };
-}
+function frenchDate(d) { const r = FR.dateFrench(d.getDate(), d.getMonth(), null, d.getDay()); return { fr: r.text, g: gjoin(["noo som", r.g]) }; }
 const Today = {
   render() {
     const v = $("#v-today");
@@ -1649,8 +1760,9 @@ const Today = {
       return `<div class="card${ok ? "" : " margin"}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><span class="label">Step ${n} · ${mins} min</span><h3>${esc(title)}</h3></div>` +
         `<span class="tag ${ok ? "m" : "p"}">${ok ? "Done" : `${Math.min(done, target)}/${target}`}</span></div>${body}${btn}</div>`;
     };
-    v.innerHTML = `<div class="view-head"><span class="label">Aujourd'hui</span><h2>Bonjour, ${esc(Profile.name())} !</h2>` +
+    v.innerHTML = `<div class="view-head"><span class="label">Aujourd'hui</span><h2>Bonjour${PUBLIC && !(S.profile.name || "").trim() ? "" : ", " + esc(Profile.name())} !</h2>` +
       (dateFr ? `<div class="row" style="gap:8px;flex-wrap:nowrap">${playBtn("Nous sommes " + dateFr + ".", "today's date")}<div style="min-width:0"><div class="fr" style="font-size:1.05rem">Nous sommes ${esc(dateFr)}.</div><div class="guide">${esc(dt.g)}</div><div class="en">Today is ${esc(new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }))}.</div></div></div>` : "") + `</div>` +
+      (PUBLIC && !(S.profile.name || "").trim() ? `<div class="note"><b>Make it yours:</b> add your name, nationality and age in <b>Moi → My introduction</b>. Your answers and progress are saved on this phone only.</div>` : "") +
       `<p class="muted">Your 10-minute plan. Do the steps in order; each one ticks itself off as you practise.</p>` +
       step("num", 1, "Numbers drill", 4, `<p class="small">Level <b>${esc(LEVEL(lvl).label)}</b>, listen and type. Aim for ${PLAN_TARGET.num} answers.</p>`, `<button class="btn primary" id="td-num">Start numbers</button>`) +
       step("phr", 2, "5 phrases", 4, `<div class="list">${five.map((x) => item({ fr: x.fr, g: x.g, en: x.en, say: phraseSay(x.fr) })).join("")}</div>`, `<button class="btn primary" id="td-phr">Practise these 5</button>`) +
@@ -1674,6 +1786,540 @@ const Today = {
 App.register("today", Today);
 
 /* ====================================================================
+   SHARED QUIZ HELPERS (multiple choice + stats)
+   ==================================================================== */
+const QSTREAK = {};
+function recordQuiz(key, ok) {
+  const q = S.quiz[key] = S.quiz[key] || { right: 0, played: 0, best: 0 };
+  q.played++; if (ok) q.right++;
+  QSTREAK[key] = ok ? (QSTREAK[key] || 0) + 1 : 0;
+  if (QSTREAK[key] > q.best) q.best = QSTREAK[key];
+  markDaily(key);
+}
+function statsHTML(key) {
+  const q = S.quiz[key] || { right: 0, played: 0, best: 0 };
+  return `<div class="stat"><b>${q.right}/${q.played}</b><span>All time</span></div><div class="stat"><b>${QSTREAK[key] || 0}</b><span>Streak</span></div><div class="stat"><b>${q.best}</b><span>Best</span></div>`;
+}
+// One multiple-choice question inside `el` (a card).
+// cfg = {id, key, prompt (html), options: [{html, ok}], item (feedback item), cols, onNext()}
+function mcq(el, cfg) {
+  el.innerHTML = cfg.prompt + `<div class="opts" id="${cfg.id}-opts"${cfg.cols ? ` style="grid-template-columns:repeat(${cfg.cols},minmax(0,1fr))"` : ""}>` +
+    cfg.options.map((o, i) => `<button class="opt" data-i="${i}"${o.ok ? " data-ok" : ""}${cfg.cols ? ' style="align-items:center;text-align:center"' : ""}>${o.html}</button>`).join("") + `</div><div id="${cfg.id}-fb"></div>`;
+  const box = $(`#${cfg.id}-opts`, el);
+  box.onclick = (e) => {
+    const b = e.target.closest(".opt"); if (!b || box.dataset.done) return;
+    box.dataset.done = "1";
+    const o = cfg.options[+b.dataset.i];
+    $$(".opt", box).forEach((x) => { const oo = cfg.options[+x.dataset.i]; if (oo.ok) x.classList.add("right"); else if (x === b) x.classList.add("wrong"); x.disabled = true; });
+    if (cfg.key) recordQuiz(cfg.key, o.ok);
+    if (cfg.onDone) cfg.onDone(o.ok);
+    $(`#${cfg.id}-fb`, el).innerHTML = feedback(o.ok, o.ok ? "Correct" : "The answer is:", cfg.item) +
+      `<div class="row" style="margin-top:12px"><button class="btn primary wide next-btn" id="${cfg.id}-next">Next →</button></div>`;
+    const nx = $(`#${cfg.id}-next`, el);
+    nx.addEventListener("click", () => cfg.onNext());
+    nx.scrollIntoView({ block: "nearest" });
+    if (cfg.speakOnAnswer !== false && cfg.item && (cfg.item.say || cfg.item.fr) && !cfg.item.list) Speech.say(cfg.item.say || cfg.item.fr);
+  };
+  requestAnimationFrame(() => fitCard(el));
+}
+// Unique options by label, correct one included, shuffled.
+function optionSet(correct, wrongs, n = 4) {
+  const seen = new Set([correct.key]), out = [{ ...correct, ok: true }];
+  for (const w of wrongs) { if (out.length >= n) break; if (!seen.has(w.key)) { seen.add(w.key); out.push({ ...w, ok: false }); } }
+  return shuffle(out);
+}
+const frOpt = (fr, g) => `<span class="fr">${esc(fr)}</span>${g ? `<span class="guide">${esc(g)}</span>` : ""}`;
+
+/* ====================================================================
+   TIME (in Numbers)
+   ==================================================================== */
+function clockSVG(h, m) {
+  const ha = ((h % 12) + m / 60) * 30, ma = m * 6;
+  const hand = (a, len, w, col) => { const r = (a - 90) * Math.PI / 180; return `<line x1="50" y1="50" x2="${(50 + len * Math.cos(r)).toFixed(1)}" y2="${(50 + len * Math.sin(r)).toFixed(1)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`; };
+  let ticks = "";
+  for (let i = 0; i < 12; i++) { const r = (i * 30 - 90) * Math.PI / 180, a = i % 3 ? 40 : 37;
+    ticks += `<line x1="${(50 + a * Math.cos(r)).toFixed(1)}" y1="${(50 + a * Math.sin(r)).toFixed(1)}" x2="${(50 + 44 * Math.cos(r)).toFixed(1)}" y2="${(50 + 44 * Math.sin(r)).toFixed(1)}" stroke="var(--muted)" stroke-width="${i % 3 ? 1.5 : 3}" stroke-linecap="round"/>`; }
+  return `<svg viewBox="0 0 100 100" width="132" height="132" role="img" aria-label="Clock showing ${h}:${String(m).padStart(2, "0")}"><circle cx="50" cy="50" r="47" fill="var(--card)" stroke="var(--line-strong)" stroke-width="2"/>${ticks}` +
+    hand(ha, 24, 4.5, "var(--ink)") + hand(ma, 36, 3, "var(--accent)") + `<circle cx="50" cy="50" r="3" fill="var(--margin)"/></svg>`;
+}
+const digital = (h, m) => `${h}:${String(m).padStart(2, "0")}`;
+const partOfDay = (h) => (h < 12 ? (h === 0 ? "midnight" : "morning") : h === 12 ? "noon" : h < 18 ? "afternoon" : "evening");
+const TimeView = {
+  q: null,
+  ui(b) {
+    const st = S.time.style, md = S.time.mode;
+    b.innerHTML = `<div class="card margin" id="tm-q"></div><div class="stats" id="tm-stats"></div>` +
+      `<div class="card"><div class="stack" style="gap:8px"><span class="label">Style</span>${seg("tm-style", [["day", "Everyday (et quart, midi…)"], ["24", "24-hour (14 h 30)"]], st)}</div>` +
+      `<div class="stack" style="gap:8px"><span class="label">Mode</span>${seg("tm-mode", [["read", "Read the clock → choose"], ["listen", "Listen → type"]], md)}</div></div>` +
+      `<p class="small muted" id="tm-more-wrap"></p>` + this.learnHTML();
+    bindSeg(b, "tm-style", (v) => { S.time.style = v; save(); this.next(false); });
+    bindSeg(b, "tm-mode", (v) => { S.time.mode = v; save(); this.next(false); });
+    this.next(false);
+    if (Claude.sample) Coach.morePracticeButton($("#tm-more-wrap"), "time");
+  },
+  gen() {
+    const h = rand(0, 23), x = Math.random();
+    let m;
+    if (S.time.style === "day") m = x < 0.15 ? 0 : x < 0.5 ? pick([15, 30, 45]) : rand(1, 11) * 5;
+    else m = x < 0.6 ? rand(0, 11) * 5 : rand(0, 59);
+    return { h, m };
+  },
+  next(autoplay) {
+    let t; do { t = this.gen(); } while (this.q && t.h === this.q.h && t.m === this.q.m);
+    const r = FR.timeFrench(t.h, t.m, S.time.style);
+    this.q = { ...t, ...r };
+    const el = $("#tm-q"); if (!el) return;
+    $("#tm-stats").innerHTML = statsHTML("time");
+    const item = { fr: r.fr, g: r.g, en: `${digital(t.h, t.m)} (${partOfDay(t.h)})` };
+    if (S.time.mode === "read") {
+      const style = S.time.style, alt = [[t.h + 1, t.m], [t.h - 1, t.m], [t.h, (t.m + 15) % 60], [t.h, (60 - t.m) % 60], [t.h, (t.m + 30) % 60], [t.h + 12, t.m], [t.h, (t.m + 10) % 60], [t.h + 2, t.m]]
+        .map(([h, m]) => FR.timeFrench(((h % 24) + 24) % 24, m, style));
+      const opts = optionSet({ key: r.fr, html: frOpt(r.fr, r.g) }, shuffle(alt).map((a) => ({ key: a.fr, html: frOpt(a.fr, a.g) })));
+      mcq(el, { id: "tm", key: "time", item, onNext: () => this.next(true), speakOnAnswer: true,
+        prompt: `<div class="q-prompt"><span class="label">Quelle heure est-il ?</span><div class="row" style="justify-content:center;gap:16px">${clockSVG(t.h, t.m)}<div><div class="digits" style="font-size:2rem">${digital(t.h, t.m)}</div><div class="small muted">${partOfDay(t.h)}</div></div></div></div>`,
+        options: opts });
+      el.onclick = null;
+    } else {
+      el.innerHTML = `<div class="q-prompt"><span class="label">Listen, then type the time</span>${playBtn(r.fr, "the time", true)}</div>` + keypadHTML("tm", "e.g. 1430 or 230");
+      Keypad.bind("tm", { max: 4, fmt: (v) => (v.length <= 2 ? v : v.slice(0, -2) + ":" + v.slice(-2)), onOk: (v) => this.checkTyped(v, item) });
+      requestAnimationFrame(() => fitCard(el));
+      if (autoplay) Speech.say(r.fr);
+    }
+  },
+  checkTyped(v, item) {
+    if (this.answered === this.q) return;
+    this.answered = this.q;
+    const n = +v, h = v.length <= 2 ? n : Math.floor(n / 100), m = v.length <= 2 ? 0 : n % 100;
+    const ok = m === this.q.m && (h === this.q.h || (S.time.style === "day" && h % 12 === this.q.h % 12));
+    recordQuiz("time", ok);
+    $("#tm-stats").innerHTML = statsHTML("time");
+    $("#tm-fb").innerHTML = feedback(ok, ok ? "Correct" : `You typed ${digital(h, m)}. The answer is ${digital(this.q.h, this.q.m)}`, item) +
+      `<div class="row" style="margin-top:12px"><button class="btn primary wide next-btn" id="tm-next">Next →</button></div>`;
+    $("#tm-pad").hidden = true;
+    $("#tm-next").addEventListener("click", () => this.next(true));
+  },
+  learnHTML() {
+    const ex = (h, m, st) => { const r = FR.timeFrench(h, m, st); return item({ fr: r.fr, g: r.g, en: digital(h, m) }); };
+    return `<div class="card"><h3>Asking the time</h3><div class="list">` +
+      item({ fr: "Quelle heure est-il ?", g: "kel uh-reh-TEEL", en: "What time is it?" }) +
+      item({ fr: "Il est quelle heure ?", g: "ee-leh kel UHR", en: "What time is it? (casual)" }) +
+      item({ fr: "À quelle heure ?", g: "a kel UHR", en: "At what time?" }) +
+      item({ fr: "Le cours est à sept heures.", g: "luh koor eh-ta se-TUHR", en: "The class is at seven." }) + `</div></div>` +
+      `<div class="card margin"><h3>Everyday style</h3>
+        <p><b>Il est</b> + hour + <b>heure(s)</b>. <i>Heure</i> is feminine: <i>une heure</i>, <i>vingt et une heures</i>.</p>
+        <p>Up to half past, add the minutes: <b>et quart</b> (:15), <b>et demie</b> (:30). After half past, go to the <b>next</b> hour and take away: <b>moins le quart</b> (:45), <b>moins dix</b> (:50).</p>
+        <p><b>midi</b> = 12 noon, <b>minuit</b> = midnight (no “heures”). Add <b>du matin</b>, <b>de l'après-midi</b> or <b>du soir</b> if needed.</p>
+        <div class="list">${ex(1, 0, "day")}${ex(3, 15, "day")}${ex(4, 30, "day")}${ex(5, 45, "day")}${ex(6, 10, "day")}${ex(7, 50, "day")}${ex(12, 0, "day")}${ex(12, 30, "day")}${ex(0, 0, "day")}${ex(15, 20, "day")}${ex(20, 35, "day")}</div></div>` +
+      `<div class="card"><h3>24-hour style</h3><p>Used for timetables, shops, TV and appointments. Say the hour, then the minutes as a number. No quart, demie or moins. Written <b>14 h 30</b>.</p>
+        <div class="list">${ex(8, 15, "24")}${ex(14, 30, "24")}${ex(18, 45, "24")}${ex(21, 5, "24")}${ex(0, 15, "24")}</div></div>`;
+  },
+};
+
+/* ====================================================================
+   DATES (in Numbers)
+   ==================================================================== */
+const MONTH_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DAY_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DIM = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const capSyl = (syl) => { const s = syl.slice(); for (let i = s.length - 1; i >= 0; i--) if (s[i][0] !== "~") { s[i] = s[i].toUpperCase(); break; } return s.map((x) => x.replace(/^~/, "")).join("-"); };
+const DatesView = {
+  q: null,
+  ui(b) {
+    const md = S.dates.mode;
+    b.innerHTML = `<div class="card margin" id="dt-q"></div><div class="stats" id="dt-stats"></div>` +
+      `<div class="card"><span class="label">Mode</span>${seg("dt-mode", [["read", "Read → choose"], ["listen", "Listen → choose"], ["year", "Year: listen → type"]], md)}</div>` + this.learnHTML();
+    bindSeg(b, "dt-mode", (v) => { S.dates.mode = v; save(); this.next(false); });
+    this.next(false);
+  },
+  year() { const x = Math.random(); return x < 0.45 ? rand(1950, 1999) : x < 0.9 ? rand(2000, 2030) : rand(1900, 1949); },
+  gen() { const mo = rand(0, 11), d = rand(1, mo === 1 ? 28 : DIM[mo]); return { d, mo, y: this.year() }; },
+  next(autoplay) {
+    const el = $("#dt-q"); if (!el) return;
+    $("#dt-stats").innerHTML = statsHTML("dates");
+    const md = S.dates.mode;
+    if (md === "year") {
+      const y = this.year(), fr = FR.toFrench(y), g = FR.numberGuide(y);
+      this.q = { y, fr, g };
+      el.innerHTML = `<div class="q-prompt"><span class="label">Listen, then type the year</span>${playBtn(fr, "the year", true)}</div>` + keypadHTML("dt", "Type the year");
+      Keypad.bind("dt", { max: 4, fmt: (v) => v, onOk: (v) => {
+        if (this.answered === this.q) return; this.answered = this.q;
+        const ok = +v === y; recordQuiz("dates", ok); $("#dt-stats").innerHTML = statsHTML("dates");
+        $("#dt-fb").innerHTML = feedback(ok, ok ? "Correct" : `You typed ${v}. The answer is ${y}`, { fr: "en " + fr, say: "en " + fr, g: gjoin(["ahn", g]), en: "in " + y }) +
+          `<div class="row" style="margin-top:12px"><button class="btn primary wide next-btn" id="dt-next">Next →</button></div>`;
+        $("#dt-pad").hidden = true; $("#dt-next").addEventListener("click", () => this.next(true));
+      } });
+      requestAnimationFrame(() => fitCard(el));
+      if (autoplay) Speech.say(fr);
+      return;
+    }
+    const t = this.gen(), r = FR.dateFrench(t.d, t.mo, t.y), num = `${t.d}/${t.mo + 1}/${t.y}`;
+    // Confusable dates: neighbouring or look-alike months, day ±1/±10, year off by 10.
+    const LOOK = { 0: [5, 6], 2: [4], 4: [2], 5: [6], 6: [5], 8: [11, 10], 9: [10, 7], 10: [8, 9], 11: [8, 10], 1: [3], 3: [7], 7: [3] };
+    const alts = [[t.d, (LOOK[t.mo] || [t.mo + 1])[0], t.y], [t.d, (LOOK[t.mo] || [t.mo + 1, t.mo + 2])[1] ?? (t.mo + 1) % 12, t.y], [t.d === 28 ? 18 : t.d + 1, t.mo, t.y], [t.d > 10 ? t.d - 10 : t.d + 10, t.mo, t.y], [t.d, t.mo, t.y + 10], [t.d, t.mo, t.y - 10], [t.d, (t.mo + 1) % 12, t.y]]
+      .map(([d, mo, y]) => ({ d: Math.min(d, 28), mo: ((mo % 12) + 12) % 12, y }));
+    this.q = { ...t, ...r };
+    const item = { fr: r.text, say: r.fr, g: r.g, en: `${t.d} ${MONTH_EN[t.mo]} ${t.y}`, after: `<div class="small">${esc(r.fr)}</div>` };
+    if (md === "read") {
+      const opts = optionSet({ key: r.fr, html: frOpt(r.fr, r.g) }, shuffle(alts).map((a) => { const x = FR.dateFrench(a.d, a.mo, a.y); return { key: x.fr, html: frOpt(x.fr, x.g) }; }));
+      mcq(el, { id: "dt", key: "dates", item, onNext: () => this.next(true), options: opts,
+        prompt: `<div class="q-prompt"><span class="label">Pick the French for</span><div class="digits" style="font-size:2rem">${num}</div><div class="small muted">day / month / year, as written in France</div></div>` });
+    } else {
+      const opts = optionSet({ key: num, html: `<span class="digits" style="font-size:1.3rem">${num}</span>` },
+        shuffle(alts).map((a) => { const k = `${a.d}/${a.mo + 1}/${a.y}`; return { key: k, html: `<span class="digits" style="font-size:1.3rem">${k}</span>` }; }));
+      mcq(el, { id: "dt", key: "dates", item, onNext: () => this.next(true), options: opts, cols: 2, speakOnAnswer: false,
+        prompt: `<div class="q-prompt"><span class="label">Listen, then pick the date</span>${playBtn(r.fr, "the date", true)}<div class="small muted">day / month / year</div></div>` });
+      if (autoplay) Speech.say(r.fr);
+    }
+  },
+  learnHTML() {
+    const d = FR.dateFrench(18, 9, 2026), b = FR.dateFrench(3, 4, 1998), p1 = FR.dateFrench(1, 0);
+    return `<div class="card"><h3>Les mois · months</h3><p class="small muted">No capital letters for months or days in French.</p><div class="list">` +
+      FR.MONTHS.map((m, i) => item({ fr: m[0], g: capSyl(m[1]), en: MONTH_EN[i] })).join("") + `</div></div>` +
+      `<div class="card"><h3>Les jours · days</h3><div class="list">` + [1, 2, 3, 4, 5, 6, 0].map((i) => item({ fr: FR.DAYS[i][0], g: capSyl(FR.DAYS[i][1]), en: DAY_EN[i] })).join("") + `</div></div>` +
+      `<div class="card margin"><h3>Saying a date</h3>
+        <p><b>le</b> + number + month + year: <i>le 18 octobre 2026</i>. The 1st is <b>le premier</b> (written 1er); every other day is a plain number.</p>
+        <p>Years are ordinary numbers: <i>2026 = deux mille vingt-six</i>, <i>1998 = mille neuf cent quatre-vingt-dix-huit</i>. “In” a year or month is <b>en</b>: <i>en 2026, en octobre</i>.</p>
+        <div class="list">${item({ fr: d.text, say: d.fr, g: d.g, en: "18 October 2026", after: `<div class="small">${esc(d.fr)}</div>` })}${item({ fr: p1.text, say: p1.fr, g: p1.g, en: "1 January" })}${item({ fr: b.text, say: b.fr, g: b.g, en: "3 May 1998", after: `<div class="small">${esc(b.fr)}</div>` })}</div></div>` +
+      `<div class="card"><h3>Questions</h3><div class="list">` +
+      item({ fr: "Quelle est la date aujourd'hui ?", g: "kel eh la dat o-zhoor-DWEE", en: "What's the date today?" }) +
+      item({ fr: "Nous sommes le dix-huit octobre.", g: "noo som luh deez weet ok-TO-bruh", en: "It's 18 October." }) +
+      item({ fr: "On est quel jour ?", g: "o-neh kel ZHOOR", en: "What day is it?" }) +
+      item({ fr: "On est jeudi.", g: "o-neh zhuh-DEE", en: "It's Thursday." }) +
+      item({ fr: "C'est quand, ton anniversaire ?", g: "seh kahn, to-na-nee-vehr-SEHR", en: "When is your birthday?" }) +
+      item({ fr: "C'est le trois mai.", g: "seh luh trwah MEH", en: "It's on 3 May." }) +
+      item({ fr: "Tu es né(e) en quelle année ?", g: "tew eh nay ahn kel a-NAY", en: "What year were you born?" }) +
+      item({ fr: "Je suis né(e) en mille neuf cent quatre-vingt-seize.", g: "zhuh swee nay ahn meel nuhf sahn kat-ruh van SEZ", en: "I was born in 1996." }) + `</div></div>`;
+  },
+};
+
+/* ====================================================================
+   VERBS — ÊTRE AND AVOIR
+   ==================================================================== */
+const PRON = ["je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles"];
+const PRON_EN = ["I", "you (friendly)", "he", "she", "we (casual) / one", "we", "you (polite or plural)", "they (m. or mixed)", "they (f.)"];
+// [form, full phrase, guide, English]
+const VERBS = {
+  etre: { inf: "être", g: "EH-truh", en: "to be", forms: [
+    ["suis", "je suis", "zhuh SWEE", "I am"], ["es", "tu es", "tew EH", "you are"], ["est", "il est", "ee-LEH", "he is"], ["est", "elle est", "e-LEH", "she is"],
+    ["est", "on est", "o-NEH", "we are (casual)"], ["sommes", "nous sommes", "noo SOM", "we are"], ["êtes", "vous êtes", "voo-ZET", "you are"],
+    ["sont", "ils sont", "eel SON", "they are"], ["sont", "elles sont", "el SON", "they are (f.)"]] },
+  avoir: { inf: "avoir", g: "a-VWAHR", en: "to have", forms: [
+    ["ai", "j'ai", "ZHAY", "I have"], ["as", "tu as", "tew AH", "you have"], ["a", "il a", "ee-LAH", "he has"], ["a", "elle a", "e-LAH", "she has"],
+    ["a", "on a", "o-NAH", "we have (casual)"], ["avons", "nous avons", "noo-za-VON", "we have"], ["avez", "vous avez", "voo-za-VAY", "you have"],
+    ["ont", "ils ont", "eel-ZON", "they have"], ["ont", "elles ont", "el-ZON", "they have (f.)"]] },
+};
+// Fill the gap: [verb, pronoun index, sentence with ___, full sentence, guide, English]
+const GAPS = [
+  ["etre", 0, "Je ___ singapourien.", "Je suis singapourien.", "zhuh swee san-ga-poo-RYAN", "I'm Singaporean."],
+  ["etre", 1, "Tu ___ étudiante ?", "Tu es étudiante ?", "tew eh ay-tew-DYAHNT", "Are you a student?"],
+  ["etre", 2, "Il ___ médecin.", "Il est médecin.", "ee-leh mayd-SAN", "He's a doctor."],
+  ["etre", 3, "Elle ___ française.", "Elle est française.", "e-leh frahn-SEZ", "She's French."],
+  ["etre", 5, "Nous ___ en classe.", "Nous sommes en classe.", "noo som ahn KLAS", "We're in class."],
+  ["etre", 6, "Vous ___ professeur ?", "Vous êtes professeur ?", "voo-zet pro-feh-SUHR", "Are you a teacher?"],
+  ["etre", 7, "Ils ___ japonais.", "Ils sont japonais.", "eel son zha-po-NEH", "They're Japanese."],
+  ["etre", 8, "Elles ___ à Paris.", "Elles sont à Paris.", "el son-ta pa-REE", "They're in Paris."],
+  ["etre", 4, "On ___ lundi.", "On est lundi.", "o-neh luhn-DEE", "It's Monday."],
+  ["etre", 2, "Mon père ___ ingénieur.", "Mon père est ingénieur.", "mon pehr eh-tan-zhay-NYUHR", "My father is an engineer."],
+  ["etre", 3, "Ma sœur ___ étudiante.", "Ma sœur est étudiante.", "ma suhr eh-tay-tew-DYAHNT", "My sister is a student."],
+  ["etre", 7, "Mes parents ___ retraités.", "Mes parents sont retraités.", "may pa-rahn son ruh-treh-TAY", "My parents are retired."],
+  ["etre", 1, "Tu ___ de Singapour ?", "Tu es de Singapour ?", "tew eh duh san-ga-POOR", "Are you from Singapore?"],
+  ["etre", 5, "Nous ___ amis.", "Nous sommes amis.", "noo som-za-MEE", "We're friends."],
+  ["etre", 6, "Vous ___ chinois ?", "Vous êtes chinois ?", "voo-zet shee-NWAH", "Are you Chinese?"],
+  ["avoir", 0, "J'___ vingt-cinq ans.", "J'ai vingt-cinq ans.", "zhay vant san-KAHN", "I'm 25."],
+  ["avoir", 1, "Tu ___ un frère ?", "Tu as un frère ?", "tew a uhn FREHR", "Do you have a brother?"],
+  ["avoir", 2, "Il ___ deux sœurs.", "Il a deux sœurs.", "ee-la duh SUHR", "He has two sisters."],
+  ["avoir", 3, "Elle ___ dix-huit ans.", "Elle a dix-huit ans.", "e-la deez wee-TAHN", "She's 18."],
+  ["avoir", 5, "Nous ___ cours de français.", "Nous avons cours de français.", "noo-za-von koor duh frahn-SEH", "We have French class."],
+  ["avoir", 6, "Vous ___ un stylo ?", "Vous avez un stylo ?", "voo-za-vay uhn stee-LOH", "Do you have a pen?"],
+  ["avoir", 7, "Ils ___ trois enfants.", "Ils ont trois enfants.", "eel-zon trwa-zahn-FAHN", "They have three children."],
+  ["avoir", 8, "Elles ___ un chat.", "Elles ont un chat.", "el-zon-tuhn SHAH", "They have a cat."],
+  ["avoir", 4, "On ___ une question.", "On a une question.", "o-na ewn kes-TYON", "We have a question."],
+  ["avoir", 3, "Ma mère ___ cinquante ans.", "Ma mère a cinquante ans.", "ma mehr a san-kahn-TAHN", "My mother is 50."],
+  ["avoir", 7, "Mes cousins ___ un chien.", "Mes cousins ont un chien.", "may koo-zan on-tuhn SHYAN", "My cousins have a dog."],
+  ["avoir", 1, "Tu ___ quel âge ?", "Tu as quel âge ?", "tew a ke-LAZH", "How old are you?"],
+  ["avoir", 6, "Vous ___ des enfants ?", "Vous avez des enfants ?", "voo-za-vay day-zahn-FAHN", "Do you have children?"],
+  ["avoir", 0, "J'___ une sœur et un frère.", "J'ai une sœur et un frère.", "zhay ewn suhr ay uhn FREHR", "I have a sister and a brother."],
+  ["avoir", 5, "Nous ___ un cahier.", "Nous avons un cahier.", "noo-za-von-zuhn ka-YAY", "We have an exercise book."],
+];
+const VerbsView = {
+  sub: "tables", which: "both", mode: "pick", q: null, lastGap: null,
+  render() {
+    const v = $("#v-verbs");
+    v.innerHTML = `<div class="view-head"><span class="label">Grammaire · les verbes</span><h2>Être et avoir</h2></div>` +
+      seg("vb-sub", [["tables", "Tables"], ["drill", "Conjugation drill"], ["gap", "Fill the gap"]], this.sub) + `<div id="vb-body" class="stack"></div>`;
+    bindSeg(v, "vb-sub", (val) => { this.sub = val; this.body(); });
+    this.body();
+  },
+  body() {
+    const b = $("#vb-body");
+    if (this.sub === "tables") return this.tablesUI(b);
+    b.innerHTML = `<div class="card margin" id="vb-q"></div><div class="stats" id="vb-stats"></div><div class="card">` +
+      `<span class="label">Verb</span>${seg("vb-which", [["both", "Both"], ["etre", "être"], ["avoir", "avoir"]], this.which)}` +
+      (this.sub === "drill" ? `<span class="label">Mode</span>${seg("vb-mode", [["pick", "See → pick the form"], ["listen", "Listen → pick what you hear"]], this.mode)}` : "") +
+      `</div><p class="small muted" id="vb-more-wrap"></p>`;
+    bindSeg(b, "vb-which", (v) => { this.which = v; this.next(false); });
+    bindSeg(b, "vb-mode", (v) => { this.mode = v; this.next(false); });
+    this.next(false);
+    if (Claude.sample) Coach.morePracticeButton($("#vb-more-wrap"), "verbs");
+  },
+  verbKey() { return this.which === "both" ? pick(["etre", "avoir"]) : this.which; },
+  next(autoplay) {
+    const el = $("#vb-q"); if (!el) return;
+    $("#vb-stats").innerHTML = statsHTML("verbs");
+    if (this.sub === "gap") return this.gapQ(el);
+    const vk = this.verbKey(), V = VERBS[vk];
+    let pi; do { pi = rand(0, 8); } while (this.q && this.q.vk === vk && this.q.pi === pi);
+    const f = V.forms[pi];
+    this.q = { vk, pi };
+    const item = { fr: f[1], g: f[2], en: f[3] + ` (${V.inf})` };
+    if (this.mode === "pick") {
+      const others = [...new Set(V.forms.map((x) => x[0]))].filter((x) => x !== f[0]);
+      const opts = optionSet({ key: f[0], html: `<span class="fr">${esc(f[0])}</span>` }, shuffle(others).map((x) => ({ key: x, html: `<span class="fr">${esc(x)}</span>` })));
+      mcq(el, { id: "vb", key: "verbs", item, onNext: () => this.next(true), options: opts, cols: 2,
+        prompt: `<div class="q-prompt"><span class="label">${esc(V.inf)} · ${esc(V.en)}</span><div class="fr big">${esc(PRON[pi])} + ${esc(V.inf)}</div><div class="en">${esc(PRON_EN[pi])}</div></div>` });
+    } else {
+      // Hear a phrase, pick it from look-alikes: same pronoun with the other verb, neighbouring pronouns.
+      const other = VERBS[vk === "etre" ? "avoir" : "etre"].forms[pi];
+      const near = [pi === 7 ? 2 : pi === 8 ? 3 : pi === 2 ? 7 : pi === 3 ? 8 : (pi + 1) % 9, rand(0, 8)];
+      const cands = [{ key: other[1], g: other[2] }, ...near.map((n) => ({ key: V.forms[n][1], g: V.forms[n][2] })), ...near.map((n) => ({ key: VERBS[vk === "etre" ? "avoir" : "etre"].forms[n][1] }))];
+      const opts = optionSet({ key: f[1], html: `<span class="fr">${esc(f[1])}</span>` }, cands.map((c) => ({ key: c.key, html: `<span class="fr">${esc(c.key)}</span>` })));
+      mcq(el, { id: "vb", key: "verbs", item, onNext: () => this.next(true), options: opts, cols: 2, speakOnAnswer: false,
+        prompt: `<div class="q-prompt"><span class="label">Listen: which one do you hear?</span>${playBtn(f[1], "the phrase", true)}<div class="small muted">Tip: ils sont = “eel SON”, ils ont = “eel ZON”.</div></div>` });
+      if (autoplay) Speech.say(f[1]);
+    }
+  },
+  gapQ(el) {
+    const pool = GAPS.filter((x) => (this.which === "both" || x[0] === this.which) && x !== this.lastGap);
+    const gq = this.lastGap = pick(pool), V = VERBS[gq[0]], f = V.forms[gq[1]];
+    const others = [...new Set(V.forms.map((x) => x[0]))].filter((x) => x !== f[0]);
+    const opts = optionSet({ key: f[0], html: `<span class="fr">${esc(f[0])}</span>` }, shuffle(others).map((x) => ({ key: x, html: `<span class="fr">${esc(x)}</span>` })));
+    mcq(el, { id: "vb", key: "verbs", item: { fr: gq[3], g: gq[4], en: gq[5] }, onNext: () => this.next(true), options: opts, cols: 2,
+      prompt: `<div class="q-prompt"><span class="label">Fill the gap · ${esc(V.inf)}</span><div class="fr big">${esc(gq[2]).replace("___", '<span style="color:var(--margin)">___</span>')}</div><div class="en">${esc(gq[5])}</div></div>` });
+  },
+  tablesUI(b) {
+    const table = (vk) => { const V = VERBS[vk];
+      return `<div class="card"><div class="row" style="justify-content:space-between"><div>${item({ fr: V.inf, g: V.g, en: V.en })}</div>${playListBtn(V.forms.map((f) => f[1]), "all forms", false, 0.9)}</div>` +
+        `<div class="list">${V.forms.map((f) => item({ fr: f[1], g: f[2], en: f[3] })).join("")}</div></div>`; };
+    const pair = (a, c) => `<div class="row" style="gap:12px;align-items:flex-start"><div style="flex:1 1 140px;min-width:0">${item(a)}</div><div style="flex:1 1 140px;min-width:0">${item(c)}</div></div>`;
+    b.innerHTML = `<div class="card"><p>These two verbs are irregular: learn them by heart. <b>avoir</b> also gives your age: <i>J'ai 30 ans</i> (never “je suis 30”).</p>
+      <p class="small muted"><b>on</b> = “we” in everyday speech, with the il/elle form: <i>on est, on a</i>. <b>vous</b> is polite (one person) or plural.</p></div>` +
+      table("etre") + table("avoir") +
+      `<div class="card margin"><h3>Hear the difference</h3><p class="small">être and avoir sound close. The z in <i>ils ont</i> is the clue.</p>` +
+      pair({ fr: "ils sont", g: "eel SON", en: "they are" }, { fr: "ils ont", g: "eel-ZON", en: "they have" }) +
+      pair({ fr: "il est", g: "ee-LEH", en: "he is" }, { fr: "il a", g: "ee-LAH", en: "he has" }) +
+      pair({ fr: "vous êtes", g: "voo-ZET", en: "you are" }, { fr: "vous avez", g: "voo-za-VAY", en: "you have" }) + `</div>`;
+  },
+};
+App.register("verbs", VerbsView);
+
+/* ====================================================================
+   FAMILY (in Moi)
+   ==================================================================== */
+// [id, noun, gender m/f/p, guide (noun alone), English, starts with a vowel]
+const FAMILY = [
+  ["pere", "père", "m", "PEHR", "father"], ["mere", "mère", "f", "MEHR", "mother"], ["parents", "parents", "p", "pa-RAHN", "parents"],
+  ["frere", "frère", "m", "FREHR", "brother"], ["soeur", "sœur", "f", "SUHR", "sister"], ["fils", "fils", "m", "FEES", "son"],
+  ["fille", "fille", "f", "FEEY", "daughter"], ["enfants", "enfants", "p", "ahn-FAHN", "children", 1], ["mari", "mari", "m", "ma-REE", "husband"],
+  ["femme", "femme", "f", "FAM", "wife"], ["gpere", "grand-père", "m", "grahn-PEHR", "grandfather"], ["gmere", "grand-mère", "f", "grahn-MEHR", "grandmother"],
+  ["gparents", "grands-parents", "p", "grahn-pa-RAHN", "grandparents"], ["oncle", "oncle", "m", "ON-kluh", "uncle", 1], ["tante", "tante", "f", "TAHNT", "aunt"],
+  ["cousin", "cousin", "m", "koo-ZAN", "cousin (m.)"], ["cousine", "cousine", "f", "koo-ZEEN", "cousin (f.)"], ["cousins", "cousins", "p", "koo-ZAN", "cousins"],
+  ["neveu", "neveu", "m", "nuh-VUH", "nephew"], ["niece", "nièce", "f", "NYES", "niece"], ["ami", "ami", "m", "a-MEE", "friend (m.)", 1], ["amie", "amie", "f", "a-MEE", "friend (f.)", 1],
+];
+const FAM = Object.fromEntries(FAMILY.map((f) => [f[0], f]));
+const POSS = { my: ["mon", "ma", "mes"], your: ["ton", "ta", "tes"], his: ["son", "sa", "ses"], her: ["son", "sa", "ses"] };
+const POSS_G = { mon: "mon", ma: "ma", mes: "may", ton: "ton", ta: "ta", tes: "tay", son: "son", sa: "sa", ses: "say" };
+// The right possessive for a noun: by the noun's gender; mon/ton/son before a vowel even for feminine nouns.
+function possFor(owner, f) { const P = POSS[owner]; return f[2] === "p" ? P[2] : f[2] === "m" || f[5] ? P[0] : P[1]; }
+// Put a linking consonant in front of a guide, matching the case of its first syllable: "ON-kluh" + n → "NON-kluh".
+function linkC(c, g) { const syl = g.split("-"); syl[0] = (syl[0] === syl[0].toUpperCase() ? c.toUpperCase() : c) + syl[0]; return syl.join("-"); }
+function possPhrase(p, f) {
+  const fr = `${p} ${f[1]}`;
+  if (!f[5]) return { fr, g: gjoin([POSS_G[p], f[3]]) };
+  // liaison: mon oncle = mo-NON-kluh, mon amie = mo-na-MEE, mes enfants = may-zahn-FAHN
+  return { fr, g: p.endsWith("s") ? POSS_G[p] + "-" + linkC("z", f[3]) : p.slice(0, 2) + "-" + linkC("n", f[3]) };
+}
+const artFor = (f) => (f[5] ? (f[2] === "p" ? "les" : "l'") : f[2] === "m" ? "le" : f[2] === "f" ? "la" : "les");
+function artPhrase(f) {
+  const a = artFor(f);
+  if (a === "l'") return { fr: "l'" + f[1], g: linkC("l", f[3]) };
+  if (a === "les" && f[5]) return { fr: "les " + f[1], g: "lay-" + linkC("z", f[3]) };
+  return { fr: a + " " + f[1], g: gjoin([{ le: "luh", la: "la", les: "lay" }[a], f[3]]) };
+}
+// Family-tree riddles: [question, guide, English, answer id]
+const TREE = [
+  ["Le père de mon père, c'est…", "luh pehr duh mon pehr, SEH", "My father's father is my…", "gpere"],
+  ["La mère de ma mère, c'est…", "la mehr duh ma mehr, SEH", "My mother's mother is my…", "gmere"],
+  ["Le frère de ma mère, c'est…", "luh frehr duh ma mehr, SEH", "My mother's brother is my…", "oncle"],
+  ["La sœur de mon père, c'est…", "la suhr duh mon pehr, SEH", "My father's sister is my…", "tante"],
+  ["Le fils de mon oncle, c'est…", "luh fees duh mo-non-kluh, SEH", "My uncle's son is my…", "cousin"],
+  ["La fille de ma tante, c'est…", "la feey duh ma tahnt, SEH", "My aunt's daughter is my…", "cousine"],
+  ["La fille de mes parents (pas moi !), c'est…", "la feey duh may pa-rahn, pa mwah, SEH", "My parents' daughter (not me!) is my…", "soeur"],
+  ["Le fils de mes parents (pas moi !), c'est…", "luh fees duh may pa-rahn, pa mwah, SEH", "My parents' son (not me!) is my…", "frere"],
+  ["La femme de mon oncle, c'est…", "la fam duh mo-non-kluh, SEH", "My uncle's wife is my…", "tante"],
+  ["Le mari de ma tante, c'est…", "luh ma-ree duh ma tahnt, SEH", "My aunt's husband is my…", "oncle"],
+  ["Le fils de mon frère, c'est…", "luh fees duh mon frehr, SEH", "My brother's son is my…", "neveu"],
+  ["La fille de ma sœur, c'est…", "la feey duh ma suhr, SEH", "My sister's daughter is my…", "niece"],
+  ["Les parents de ma mère, ce sont…", "lay pa-rahn duh ma mehr, suh SON", "My mother's parents are my…", "gparents"],
+  ["Les enfants de ma tante, ce sont…", "lay-zahn-fahn duh ma tahnt, suh SON", "My aunt's children are my…", "cousins"],
+  ["Le père de mes enfants, c'est…", "luh pehr duh may-zahn-fahn, SEH", "My children's father is my…", "mari"],
+];
+const FamilyView = {
+  sub: "words", q: null,
+  ui(b) {
+    b.innerHTML = seg("fam-sub", [["words", "Words"], ["poss", "mon / ma / mes"], ["tree", "Family-tree quiz"]], this.sub) + `<div id="fam-body" class="stack"></div>`;
+    bindSeg(b, "fam-sub", (v) => { this.sub = v; this.body(); });
+    this.body();
+  },
+  body() {
+    const b = $("#fam-body");
+    if (this.sub === "words") {
+      b.innerHTML = `<div class="card"><h3>La famille</h3><p class="small muted"><span class="gender-m"><b>le</b> masculine</span> · <span class="gender-f"><b>la</b> feminine</span> · <span class="gender-p"><b>les</b> plural</span> · <b>l'</b> before a vowel.</p><div class="list">` +
+        FAMILY.map((f) => { const a = artPhrase(f); return item({ fr: a.fr, g: a.g, en: "the " + f[4], frHTML: `<span class="gender-${f[2]}" style="font-weight:600">${esc(a.fr.replace(f[1], ""))}</span>${esc(f[1])}`, side: genderTag(f[2]) }); }).join("") +
+        `</div></div><div class="card"><h3>Useful sentences</h3><div class="list">` +
+        item({ fr: "Tu as des frères et sœurs ?", g: "tew a day frehr ay SUHR", en: "Do you have brothers and sisters?" }) +
+        item({ fr: "J'ai un frère et deux sœurs.", g: "zhay uhn frehr ay duh SUHR", en: "I have a brother and two sisters." }) +
+        item({ fr: "Je n'ai pas de frère.", g: "zhuh nay pa duh FREHR", en: "I don't have a brother." }) +
+        item({ fr: "Je suis fils unique.", g: "zhuh swee fee-sew-NEEK", en: "I'm an only child (boy)." }) +
+        item({ fr: "Je suis fille unique.", g: "zhuh swee fee-yew-NEEK", en: "I'm an only child (girl)." }) +
+        item({ fr: "Tu es marié(e) ?", g: "tew eh ma-RYAY", en: "Are you married?" }) +
+        item({ fr: "Voici ma mère.", g: "vwa-see ma MEHR", en: "This is my mother." }) + `</div></div>`;
+      return;
+    }
+    if (this.sub === "poss") {
+      const row = (o, en) => `<tr><td>${en}</td><td>${POSS[o].map((p) => `<b>${p}</b>`).join(" · ")}</td></tr>`;
+      b.innerHTML = `<div class="card margin" id="fam-q"></div><div class="stats" id="fam-stats"></div>` +
+        `<div class="card"><h3>my, your, his/her</h3><div class="tbl-wrap"><table><thead><tr><th></th><th>masc. · fem. · plural</th></tr></thead><tbody>${row("my", "my")}${row("your", "your (tu)")}${row("his", "his / her")}</tbody></table></div>
+        <p><b>The noun decides, not the owner.</b> <i>sa mère</i> = his mother <b>or</b> her mother; <i>son père</i> = his father <b>or</b> her father.</p>
+        <p>Before a vowel, feminine nouns take <b>mon / ton / son</b>: <i>mon amie</i>, never “ma amie”.</p>
+        <p class="small muted">Also: notre / nos (our), votre / vos (your, polite or plural), leur / leurs (their).</p><div class="list">` +
+        ["mere", "pere", "parents", "amie", "enfants"].map((id) => { const p = possPhrase(possFor("my", FAM[id]), FAM[id]); return item({ fr: p.fr, g: p.g, en: "my " + FAM[id][4] }); }).join("") + `</div></div>`;
+      return this.possQ();
+    }
+    b.innerHTML = `<div class="card margin" id="fam-q"></div><div class="stats" id="fam-stats"></div><p class="small muted" id="fam-more-wrap"></p>`;
+    if (Claude.sample) Coach.morePracticeButton($("#fam-more-wrap"), "family");
+    this.treeQ();
+  },
+  possQ() {
+    const el = $("#fam-q"); if (!el) return;
+    $("#fam-stats").innerHTML = statsHTML("family");
+    const owner = pick(["my", "my", "your", "his", "her"]);
+    let f; do { f = pick(FAMILY); } while (this.q === f); this.q = f;
+    const right = possFor(owner, f), ph = possPhrase(right, f);
+    const opts = POSS[owner].map((p) => ({ key: p, html: `<span class="fr">${p}</span>`, ok: p === right }));
+    mcq(el, { id: "fam", key: "family", item: { fr: ph.fr, g: ph.g, en: `${owner === "your" ? "your (tu)" : owner} ${f[4]}` }, onNext: () => this.possQ(), options: opts, cols: 3,
+      prompt: `<div class="q-prompt"><span class="label">${esc(owner === "your" ? "your (tu)" : owner)} ${esc(f[4])}</span><div class="fr big"><span style="color:var(--margin)">___</span> ${esc(f[1])}</div><div class="en">${f[2] === "p" ? "plural" : f[2] === "m" ? "masculine" : "feminine"} noun</div></div>` });
+  },
+  treeQ() {
+    const el = $("#fam-q"); if (!el) return;
+    $("#fam-stats").innerHTML = statsHTML("family");
+    let t; do { t = pick(TREE); } while (this.q === t); this.q = t;
+    const ans = FAM[t[3]], toOpt = (f) => { const p = possPhrase(possFor("my", f), f); return { key: f[0], fr: p.fr, g: p.g, html: frOpt(p.fr, p.g) }; };
+    const right = toOpt(ans);
+    const sameKind = FAMILY.filter((f) => f[0] !== ans[0] && f[2] === ans[2] && f[0] !== "ami" && f[0] !== "amie");
+    const opts = optionSet(right, shuffle(sameKind).map(toOpt).concat(shuffle(FAMILY.filter((f) => f[0] !== ans[0])).map(toOpt)));
+    mcq(el, { id: "fam", key: "family", item: { fr: right.fr, g: right.g, en: "my " + ans[4] }, onNext: () => this.treeQ(), options: opts,
+      prompt: `<div class="q-prompt"><span class="label">Qui est-ce ? · Who is it?</span>${item({ fr: t[0], g: t[1], en: t[2] })}</div>` });
+  },
+};
+
+/* ====================================================================
+   JOBS (in Moi)
+   ==================================================================== */
+// [id, masculine, feminine, guide m, guide f, English, picture]
+const JOBS = [
+  ["etudiant", "étudiant", "étudiante", "ay-tew-DYAHN", "ay-tew-DYAHNT", "student", "🧑‍🎓"],
+  ["prof", "professeur", "professeure", "pro-feh-SUHR", "pro-feh-SUHR", "teacher", "🧑‍🏫"],
+  ["ingenieur", "ingénieur", "ingénieure", "an-zhay-NYUHR", "an-zhay-NYUHR", "engineer", "👷"],
+  ["medecin", "médecin", "médecin", "mayd-SAN", "mayd-SAN", "doctor", "🩺"],
+  ["infirmier", "infirmier", "infirmière", "an-feer-MYAY", "an-feer-MYEHR", "nurse", "💉"],
+  ["avocat", "avocat", "avocate", "a-vo-KAH", "a-vo-KAT", "lawyer", "⚖️"],
+  ["comptable", "comptable", "comptable", "kon-TA-bluh", "kon-TA-bluh", "accountant", "🧮"],
+  ["info", "informaticien", "informaticienne", "an-for-ma-tee-SYAN", "an-for-ma-tee-SYEN", "IT specialist", "💻"],
+  ["vendeur", "vendeur", "vendeuse", "vahn-DUHR", "vahn-DUHZ", "shop assistant", "🛍️"],
+  ["serveur", "serveur", "serveuse", "sehr-VUHR", "sehr-VUHZ", "waiter / waitress", "🍽️"],
+  ["cuisinier", "cuisinier", "cuisinière", "kwee-zee-NYAY", "kwee-zee-NYEHR", "cook", "🍳"],
+  ["acteur", "acteur", "actrice", "ak-TUHR", "ak-TREES", "actor / actress", "🎭"],
+  ["chanteur", "chanteur", "chanteuse", "shahn-TUHR", "shahn-TUHZ", "singer", "🎤"],
+  ["directeur", "directeur", "directrice", "dee-rek-TUHR", "dee-rek-TREES", "manager, director", "💼"],
+  ["policier", "policier", "policière", "po-lee-SYAY", "po-lee-SYEHR", "police officer", "👮"],
+  ["journaliste", "journaliste", "journaliste", "zhoor-na-LEEST", "zhoor-na-LEEST", "journalist", "📰"],
+  ["architecte", "architecte", "architecte", "ar-shee-TEKT", "ar-shee-TEKT", "architect", "📐"],
+  ["dentiste", "dentiste", "dentiste", "dahn-TEEST", "dahn-TEEST", "dentist", "🦷"],
+  ["secretaire", "secrétaire", "secrétaire", "suh-kray-TEHR", "suh-kray-TEHR", "secretary", "🗂️"],
+  ["photographe", "photographe", "photographe", "fo-to-GRAF", "fo-to-GRAF", "photographer", "📷"],
+  ["employe", "employé de bureau", "employée de bureau", "ahn-plwa-yay duh bew-ROH", "ahn-plwa-yay duh bew-ROH", "office worker", "🖇️"],
+  ["retraite", "retraité", "retraitée", "ruh-treh-TAY", "ruh-treh-TAY", "retired", "🌴"],
+];
+const JOB = Object.fromEntries(JOBS.map((j) => [j[0], j]));
+// "Il est" / "Elle est" + job, with liaison before a vowel: il est étudiant = ee-leh-tay-tew-DYAHN
+function jobSentence(subj, j, fem) {
+  const word = fem ? j[2] : j[1], g = (fem ? j[4] : j[3]);
+  const S0 = { il: ["Il est", "ee-leh"], elle: ["Elle est", "e-leh"], je: ["Je suis", "zhuh swee"], tu: ["Tu es", "tew eh"] }[subj];
+  const vowel = /^[aeiouy]/.test(g) && (subj === "il" || subj === "elle");
+  return { fr: `${S0[0]} ${word}.`, g: vowel ? `${S0[1]}-t${g}` : gjoin([S0[1], g]) };
+}
+const JOB_ENDINGS = [
+  ["-eur → -euse", "vendeur → vendeuse, serveur → serveuse"], ["-teur → -trice", "acteur → actrice, directeur → directrice"],
+  ["-ier → -ière", "infirmier → infirmière, cuisinier → cuisinière"], ["-ien → -ienne", "informaticien → informaticienne"],
+  ["+ -e", "étudiant → étudiante, avocat → avocate, employé → employée"], ["-e: no change", "comptable, journaliste, secrétaire, architecte"],
+];
+const JobsView = {
+  sub: "words", q: null,
+  ui(b) {
+    b.innerHTML = seg("job-sub", [["words", "Words"], ["talk", "Talking about jobs"], ["quiz", "Quiz"]], this.sub) + `<div id="job-body" class="stack"></div>`;
+    bindSeg(b, "job-sub", (v) => { this.sub = v; this.body(); });
+    this.body();
+  },
+  body() {
+    const b = $("#job-body");
+    if (this.sub === "words") {
+      b.innerHTML = `<div class="card margin"><h3>No “un” after être</h3><p><i>Je suis ingénieur.</i> <i>Elle est médecin.</i> (never “je suis un ingénieur”). With <b>c'est</b> you need un/une: <i>C'est un ingénieur.</i></p></div>` +
+        `<div class="card"><h3>Masculine → feminine</h3><div class="tbl-wrap"><table><tbody>${JOB_ENDINGS.map(([e, x]) => `<tr><td><b>${esc(e)}</b></td><td class="small">${esc(x)}</td></tr>`).join("")}</tbody></table></div></div>` +
+        `<div class="card"><div class="list">${JOBS.map((j) => `<div class="item" style="flex-direction:column;gap:6px"><span class="label">${j[6] ? j[6] + " " : ""}${esc(j[5])}</span>` +
+          item({ fr: j[1], g: j[3], side: `<span class="tag m">masc.</span>` }) + (j[2] !== j[1] || j[4] !== j[3] ? item({ fr: j[2], g: j[4], side: `<span class="tag f">fém.</span>` }) : `<p class="small muted">Same word for a woman: <i>elle est ${esc(j[2])}</i>.</p>`) + `</div>`).join("")}</div></div>`;
+      return;
+    }
+    if (this.sub === "talk") {
+      const mine = Profile.jobAns();
+      b.innerHTML = `<div class="card"><span class="label">What do you do?</span><div class="stack" style="gap:10px">` +
+        item({ fr: "Qu'est-ce que tu fais dans la vie ?", g: "kes-kuh tew feh dahn la VEE", en: "What do you do (for a living)? (tu)" }) +
+        item({ fr: "Qu'est-ce que vous faites dans la vie ?", g: "kes-kuh voo fet dahn la VEE", en: "What do you do? (vous)" }) +
+        item({ fr: "Quelle est ta profession ?", g: "kel eh ta pro-feh-SYON", en: "What's your job? (tu)" }) +
+        item({ fr: "Quelle est votre profession ?", g: "kel eh vo-truh pro-feh-SYON", en: "What's your job? (vous)" }) +
+        `</div><div class="note stack" style="gap:8px"><span class="label">Your answer (from your profile)</span>${item(mine)}</div></div>` +
+        `<div class="card"><span class="label">Where do you work?</span><div class="list">` +
+        item({ fr: "Tu travailles où ?", g: "tew tra-vai OO", en: "Where do you work? (tu)" }) +
+        item({ fr: "Vous travaillez où ?", g: "voo tra-va-yay OO", en: "Where do you work? (vous)" }) +
+        item({ fr: "Je travaille dans une banque.", g: "zhuh tra-vai dahn-zewn BAHNK", en: "I work in a bank." }) +
+        item({ fr: "Je travaille dans un hôpital.", g: "zhuh tra-vai dahn-zuh-no-pee-TAL", en: "I work in a hospital." }) +
+        item({ fr: "Je travaille dans une école.", g: "zhuh tra-vai dahn-zew-nay-KOL", en: "I work in a school." }) +
+        item({ fr: "Je travaille dans un bureau.", g: "zhuh tra-vai dahn-zuhn bew-ROH", en: "I work in an office." }) +
+        item({ fr: "Je travaille à la maison.", g: "zhuh tra-vai a la meh-ZON", en: "I work from home." }) +
+        item({ fr: "Je suis étudiant(e) à l'université.", g: "zhuh swee ay-tew-dyahn(t) a lew-nee-vehr-see-TAY", en: "I'm a student at university." }) + `</div></div>` +
+        `<div class="card"><span class="label">Other people</span><div class="list">` +
+        item({ fr: "Mon père est médecin.", g: "mon pehr eh mayd-SAN", en: "My father is a doctor." }) +
+        item({ fr: "Ma mère est professeure.", g: "ma mehr eh pro-feh-SUHR", en: "My mother is a teacher." }) +
+        item({ fr: "C'est une architecte.", g: "seh-tewn ar-shee-TEKT", en: "She's an architect (c'est + une)." }) + `</div></div>`;
+      return;
+    }
+    b.innerHTML = `<div class="card margin" id="job-q"></div><div class="stats" id="job-stats"></div><p class="small muted" id="job-more-wrap"></p>`;
+    if (Claude.sample) Coach.morePracticeButton($("#job-more-wrap"), "family");
+    this.quizQ();
+  },
+  quizQ() {
+    const el = $("#job-q"); if (!el) return;
+    $("#job-stats").innerHTML = statsHTML("jobs");
+    let j; do { j = pick(JOBS); } while (this.q === j); this.q = j;
+    const fem = Math.random() < 0.5, subj = fem ? "elle" : "il", right = fem ? j[2] : j[1];
+    const wrongs = [{ key: fem ? j[1] : j[2] }, ...shuffle(JOBS.filter((x) => x !== j)).slice(0, 4).map((x) => ({ key: fem ? x[2] : x[1] }))];
+    const opts = optionSet({ key: right, html: `<span class="fr">${esc(right)}</span>` }, wrongs.map((w) => ({ key: w.key, html: `<span class="fr">${esc(w.key)}</span>` })));
+    const s = jobSentence(subj, j, fem);
+    mcq(el, { id: "job", key: "jobs", item: { fr: s.fr, g: s.g, en: `${fem ? "She" : "He"}'s ${/^[aeiou]/i.test(j[5]) ? "an" : "a"} ${j[5]}.` }, onNext: () => this.quizQ(), options: opts,
+      prompt: `<div class="q-prompt">${j[6] ? `<div style="font-size:2.6rem;line-height:1">${j[6]}</div>` : ""}<span class="label">${esc(j[5])}</span><div class="fr big">${fem ? "Elle" : "Il"} est <span style="color:var(--margin)">___</span>.</div></div>` });
+  },
+};
+
+/* ====================================================================
    Placeholder views (replaced section by section)
    ==================================================================== */
 for (const name of ["today", "sounds", "me", "class", "phrases", "coach"]) {
@@ -1693,6 +2339,9 @@ const MORE_TOPICS = {
   sounds: "the French alphabet and pronunciation: letter names (E/I, G/J, U, R, H, W, Y), accents (é è ê à ç), spelling a word letter by letter, and sound rules (silent final consonants, ou/u, oi, au/eau, ai, ch, gn, qu, silent h, nasal vowels).",
   phrases: "everyday phrases: greetings and politeness, asking how someone is, classroom survival phrases, getting to know people. Ask for the right reply in a situation, or tu vs vous.",
   me: "introducing yourself: the questions (Comment tu t'appelles ? / Comment vous appelez-vous ? etc.) and their answers, masculine/feminine nationalities, à/en/au/aux + places, ages with « ans », tu vs vous.",
+  verbs: "the verbs être and avoir in the present tense for every subject (je, tu, il, elle, on, nous, vous, ils, elles): choosing the right form, gap-fill sentences about nationality, age, jobs and family, and telling être from avoir (j'ai 30 ans).",
+  family: "family members (père, mère, frère, sœur, grands-parents, oncle, tante, cousin(e)…), possessives mon/ma/mes, ton/ta/tes, son/sa/ses (agreement with the noun, mon amie), and jobs with masculine/feminine forms and no article after être (elle est médecin).",
+  time: "telling the time (everyday: et quart, et demie, moins le quart, midi, minuit, du matin/de l'après-midi/du soir; and 24-hour style), days of the week, months, dates (le premier, le 18 octobre) and years (deux mille vingt-six, mille neuf cent quatre-vingt-dix-huit).",
   class: "classroom vocabulary with un/une, the teacher's instructions (Écoutez, Répétez, Lisez, Écrivez, Regardez, Complétez, Associez, Cochez) and what they mean, and student survival phrases.",
 };
 
@@ -1824,9 +2473,9 @@ const Coach = {
     const b = $("#co-body");
     if (this.sub === "chat") this.chatUI(b); else if (this.sub === "photo" && Claude.images) this.photoUI(b); else this.checkUI(b);
   },
-  introText() { return ["Bonjour !", ...QUESTIONS.slice(0, 5).map((q) => q.ans()[0].fr), Profile.enchante()].join(" "); },
+  introText() { return ["Bonjour !", ...QUESTIONS.slice(0, 5).map((q) => q.ans()[0].fr), ...(Profile.job() ? [Profile.jobAns().fr] : []), Profile.enchante()].join(" "); },
   checkUI(b) {
-    b.innerHTML = `<div class="card"><div class="field"><label for="ck-in">Type a sentence or your self-introduction in French</label><textarea id="ck-in" placeholder="Je m'appelle Aiyan. Je suis singapourien…">${esc(this.checkDraft || "")}</textarea></div>` +
+    b.innerHTML = `<div class="card"><div class="field"><label for="ck-in">Type a sentence or your self-introduction in French</label><textarea id="ck-in" placeholder="Je m'appelle ${esc(Profile.name())}. Je suis singapourien…">${esc(this.checkDraft || "")}</textarea></div>` +
       `<div class="row"><button class="btn primary wide" id="ck-go">Check my French</button><button class="btn wide" id="ck-intro">Use my introduction</button></div></div><div id="ck-out" class="stack"></div>`;
     $("#ck-in").addEventListener("input", (e) => { this.checkDraft = e.target.value; });
     $("#ck-intro").addEventListener("click", () => { $("#ck-in").value = this.checkDraft = this.introText(); });
