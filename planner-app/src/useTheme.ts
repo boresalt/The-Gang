@@ -3,9 +3,17 @@ import { useSetting, type Theme } from './settings'
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
+function cachedTheme(): Theme {
+  try {
+    return (localStorage.getItem('planner-theme') as Theme) || 'system'
+  } catch {
+    return 'system'
+  }
+}
+
 /** Keeps the `dark` class on <html> in sync with the saved theme and the system setting. */
 export function useApplyTheme() {
-  const theme = useSetting<Theme>('theme', (localStorage.getItem('planner-theme') as Theme) || 'system')
+  const theme = useSetting<Theme>('theme', cachedTheme())
 
   useEffect(() => {
     const apply = () => {

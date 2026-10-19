@@ -14,4 +14,6 @@ db.version(1).stores({
 })
 
 // Ask the browser not to evict our data under storage pressure
-navigator.storage?.persist?.().catch(() => {})
+try {
+  navigator.storage?.persist?.().catch(() => {})
+} catch {}
