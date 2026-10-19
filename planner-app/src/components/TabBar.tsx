@@ -1,6 +1,8 @@
-import { TABS, TAB_ORDER, type ScreenId, type TabId } from '../tabs'
+import { TABS, TAB_ORDER, moonIcon, type ScreenId, type TabId } from '../tabs'
+import { useIsNight } from '../useIsNight'
 
 export function TabBar({ current, onSelect }: { current: ScreenId; onSelect: (id: TabId) => void }) {
+  const night = useIsNight()
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95"
@@ -18,16 +20,24 @@ export function TabBar({ current, onSelect }: { current: ScreenId; onSelect: (id
                 <button
                   onClick={() => onSelect(id)}
                   aria-current={on ? 'page' : undefined}
-                  className="mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 pb-[7px] text-xs font-bold"
+                  className="mx-auto flex w-full max-w-20 flex-col items-center gap-1.5 pb-[7px] text-xs font-bold"
                 >
                   <span
-                    className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30 ring-4 ring-white transition-transform dark:ring-slate-900 [&_svg]:h-8 [&_svg]:w-8 ${
+                    className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-lg ring-4 ${
+                      night ? 'from-indigo-500 to-violet-700 shadow-indigo-500/30' : 'from-amber-400 to-orange-500 shadow-orange-500/30'
+                    } ring-white transition-transform dark:ring-slate-900 [&_svg]:h-8 [&_svg]:w-8 ${
                       on ? 'scale-105' : ''
                     }`}
                   >
-                    {t.icon}
+                    {night ? moonIcon : t.icon}
                   </span>
-                  <span className={on ? 'text-orange-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}>{t.label}</span>
+                  <span
+                    className={
+                      !on ? 'text-slate-500 dark:text-slate-400' : night ? 'text-indigo-600 dark:text-indigo-300' : 'text-orange-600 dark:text-amber-400'
+                    }
+                  >
+                    {t.label}
+                  </span>
                 </button>
               </li>
             )

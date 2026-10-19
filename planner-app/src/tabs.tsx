@@ -61,3 +61,6 @@ export const settingsIcon = svg(
 
 // Bottom bar order: Today sits in the middle
 export const TAB_ORDER: TabId[] = ['tasks', 'calendar', 'today', 'stats', 'goals']
+
+// Shown on the Today button from 6pm until 6am
+export const moonIcon = svg(<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />)
